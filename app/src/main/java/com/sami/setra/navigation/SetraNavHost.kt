@@ -28,6 +28,9 @@ import com.sami.setra.ui.screens.routines.RoutinesViewModel
 import com.sami.setra.ui.screens.splits.SplitDetailScreen
 import com.sami.setra.ui.screens.splits.SplitsScreen
 import com.sami.setra.ui.screens.splits.SplitsViewModel
+import com.sami.setra.ui.screens.workout.ActiveWorkoutScreen
+import com.sami.setra.ui.screens.workout.ActiveWorkoutViewModel
+import com.sami.setra.ui.screens.workout.WorkoutSummaryScreen
 import com.sami.setra.ui.theme.ThemeMode
 
 @Composable
@@ -89,6 +92,9 @@ fun SetraNavHost(
                 },
                 onOpenSearch = {
                     navController.navigate(Screen.ExerciseList)
+                },
+                onResumeActiveWorkout = { sessionId ->
+                    navController.navigate(Screen.ActiveWorkout(sessionId))
                 }
             )
         }
@@ -106,6 +112,40 @@ fun SetraNavHost(
                 },
                 onRoutineDuplicated = { newRoutineId ->
                     navController.navigate(Screen.RoutineDetail(newRoutineId))
+                },
+                onStartWorkout = { sessionId ->
+                    navController.navigate(Screen.ActiveWorkout(sessionId))
+                }
+            )
+        }
+
+        composable<Screen.ActiveWorkout> { backStackEntry ->
+            val activeRoute: Screen.ActiveWorkout = backStackEntry.toRoute()
+            val activeWorkoutViewModel: ActiveWorkoutViewModel = viewModel(
+                factory = ActiveWorkoutViewModel.Factory(application, activeRoute.sessionId)
+            )
+            ActiveWorkoutScreen(
+                viewModel = activeWorkoutViewModel,
+                onFinishWorkoutClick = {
+                    navController.navigate(Screen.WorkoutSummary(activeRoute.sessionId))
+                },
+                onCancelWorkoutClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Screen.WorkoutSummary> { backStackEntry ->
+            val summaryRoute: Screen.WorkoutSummary = backStackEntry.toRoute()
+            val activeWorkoutViewModel: ActiveWorkoutViewModel = viewModel(
+                factory = ActiveWorkoutViewModel.Factory(application, summaryRoute.sessionId)
+            )
+            WorkoutSummaryScreen(
+                viewModel = activeWorkoutViewModel,
+                onDoneClick = {
+                    navController.navigate(Screen.Routines) {
+                        popUpTo<Screen.Splits>()
+                    }
                 }
             )
         }

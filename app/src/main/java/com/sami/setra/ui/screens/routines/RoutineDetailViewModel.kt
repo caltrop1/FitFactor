@@ -25,6 +25,14 @@ class RoutineDetailViewModel(
     val routineState: StateFlow<RoutineWithDays?> = repository.getRoutineById(routineId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    fun startWorkout(workoutId: Long, onStarted: (Long) -> Unit) {
+        viewModelScope.launch {
+            val sessionRepo = com.sami.setra.data.repository.WorkoutSessionRepository(getApplication())
+            val sessionId = sessionRepo.startWorkout(workoutId)
+            onStarted(sessionId)
+        }
+    }
+
     fun updateRoutineHeader(name: String, description: String) {
         viewModelScope.launch {
             repository.updateRoutineHeader(routineId, name, description)

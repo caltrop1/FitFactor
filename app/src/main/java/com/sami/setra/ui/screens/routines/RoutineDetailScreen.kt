@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -85,7 +86,8 @@ fun RoutineDetailScreen(
     onBackClick: () -> Unit,
     onAddExerciseClick: (workoutId: Long) -> Unit,
     onRoutineDuplicated: (newRoutineId: Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onStartWorkout: (sessionId: Long) -> Unit = {}
 ) {
     val routineWithDays by viewModel.routineState.collectAsStateWithLifecycle()
 
@@ -354,6 +356,11 @@ fun RoutineDetailScreen(
                 RoutineDayCard(
                     dayName = dayName,
                     dayWithWorkouts = dayWithWorkouts,
+                    onStartWorkout = { workoutId ->
+                        viewModel.startWorkout(workoutId) { sessionId ->
+                            onStartWorkout(sessionId)
+                        }
+                    },
                     onAddWorkout = { viewModel.addWorkout(dayWithWorkouts.routineDay.id) },
                     onEditWorkout = { workoutToEditName = it.workout },
                     onDuplicateWorkout = { viewModel.duplicateWorkout(it.workout.id) },
@@ -398,6 +405,7 @@ fun RoutineDetailScreen(
 fun RoutineDayCard(
     dayName: String,
     dayWithWorkouts: RoutineDayWithWorkouts,
+    onStartWorkout: (workoutId: Long) -> Unit,
     onAddWorkout: () -> Unit,
     onEditWorkout: (WorkoutWithExercises) -> Unit,
     onDuplicateWorkout: (WorkoutWithExercises) -> Unit,
@@ -498,6 +506,7 @@ fun RoutineDayCard(
                         workoutWithExercises = workoutWithExercises,
                         isFirst = workoutIndex == 0,
                         isLast = workoutIndex == workouts.size - 1,
+                        onStart = { onStartWorkout(workoutWithExercises.workout.id) },
                         onEdit = { onEditWorkout(workoutWithExercises) },
                         onDuplicate = { onDuplicateWorkout(workoutWithExercises) },
                         onDelete = { onDeleteWorkout(workoutWithExercises) },
@@ -529,6 +538,7 @@ fun WorkoutBlock(
     workoutWithExercises: WorkoutWithExercises,
     isFirst: Boolean,
     isLast: Boolean,
+    onStart: () -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
     onDelete: () -> Unit,
@@ -586,6 +596,30 @@ fun WorkoutBlock(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = onStart,
+                        shape = ButtonShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        contentPadding = PaddingValues(horizontal = Dimens.spaceSmall, vertical = 0.dp),
+                        modifier = Modifier
+                            .height(32.dp)
+                            .padding(end = Dimens.spaceXSmall)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(Dimens.spaceXSmall))
+                        Text(
+                            text = "Start",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     if (!isFirst) {
                         IconButton(onClick = onMoveUp, modifier = Modifier.size(28.dp)) {
                             Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Move Workout Up")

@@ -90,6 +90,12 @@ interface RoutineDao {
     @Query("SELECT * FROM routine_exercise WHERE id = :routineExerciseId LIMIT 1")
     suspend fun getRoutineExerciseWithDetailsByIdSync(routineExerciseId: Long): com.sami.setra.data.local.database.relation.RoutineExerciseWithDetails?
 
+    @Query("SELECT r.id FROM routine r INNER JOIN routine_day rd ON r.id = rd.routineId WHERE rd.id = :routineDayId LIMIT 1")
+    suspend fun getRoutineIdByDayId(routineDayId: Long): Long?
+
+    @Query("SELECT r.name FROM routine r INNER JOIN routine_day rd ON r.id = rd.routineId WHERE rd.id = :routineDayId LIMIT 1")
+    suspend fun getRoutineNameByDayId(routineDayId: Long): String?
+
     @Query("DELETE FROM routine WHERE id = :routineId")
     suspend fun deleteRoutine(routineId: Long)
 }
