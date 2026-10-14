@@ -6,8 +6,13 @@ import com.sami.setra.data.local.database.entity.CompletedSetEntity
 import com.sami.setra.data.local.database.entity.SessionExerciseEntity
 import com.sami.setra.data.local.database.entity.WorkoutSessionEntity
 import com.sami.setra.data.local.database.relation.WorkoutSessionWithDetails
+import com.sami.setra.data.model.ExerciseProgressionPoint
+import com.sami.setra.data.model.PersonalRecord
+import com.sami.setra.data.model.WorkoutFrequencyStats
+import com.sami.setra.domain.ProgressCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class WorkoutSessionRepository(
@@ -23,6 +28,36 @@ class WorkoutSessionRepository(
 
     fun getWorkoutSessionById(sessionId: Long): Flow<WorkoutSessionWithDetails?> {
         return workoutSessionDao.getWorkoutSessionById(sessionId)
+    }
+
+    fun getAllCompletedSessions(): Flow<List<WorkoutSessionWithDetails>> {
+        return workoutSessionDao.getAllCompletedSessions()
+    }
+
+    fun getCompletedSessionsForExercise(exerciseId: String): Flow<List<WorkoutSessionWithDetails>> {
+        return workoutSessionDao.getCompletedSessionsForExercise(exerciseId)
+    }
+
+    fun getPersonalRecords(exerciseId: String? = null, weightUnit: String = "kg"): Flow<List<PersonalRecord>> {
+        return workoutSessionDao.getAllCompletedSessions().map { sessions ->
+            ProgressCalculator.calculatePersonalRecords(sessions, exerciseId, weightUnit)
+        }
+    }
+
+    fun getWorkoutFrequencyStats(nowMillis: Long = System.currentTimeMillis()): Flow<WorkoutFrequencyStats> {
+        return workoutSessionDao.getAllCompletedSessions().map { sessions ->
+            ProgressCalculator.calculateWorkoutFrequency(sessions, nowMillis)
+        }
+    }
+
+    fun getExerciseProgression(exerciseId: String): Flow<List<ExerciseProgressionPoint>> {
+        return workoutSessionDao.getCompletedSessionsForExercise(exerciseId).map { sessions ->
+            ProgressCalculator.calculateExerciseProgression(sessions, exerciseId)
+        }
+    }
+
+    suspend fun deleteWorkoutSession(sessionId: Long) = withContext(Dispatchers.IO) {
+        workoutSessionDao.deleteWorkoutSession(sessionId)
     }
 
     suspend fun startWorkout(workoutId: Long): Long = withContext(Dispatchers.IO) {

@@ -50,6 +50,12 @@ sealed interface Screen {
 
     @Serializable
     data class WorkoutSummary(val sessionId: Long) : Screen
+
+    @Serializable
+    data object WorkoutHistory : Screen
+
+    @Serializable
+    data class SessionDetail(val sessionId: Long) : Screen
 }
 
 data class BottomNavItem(

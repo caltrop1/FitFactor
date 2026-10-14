@@ -59,6 +59,19 @@ interface WorkoutSessionDao {
     @Query("SELECT * FROM workout_session WHERE status = 'COMPLETED' ORDER BY completedAt DESC")
     fun getAllCompletedSessions(): Flow<List<WorkoutSessionWithDetails>>
 
+    @Transaction
+    @Query("SELECT * FROM workout_session WHERE status = 'COMPLETED' ORDER BY completedAt DESC")
+    suspend fun getAllCompletedSessionsSync(): List<WorkoutSessionWithDetails>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT ws.* FROM workout_session ws
+        INNER JOIN session_exercise se ON se.workoutSessionId = ws.id
+        WHERE se.exerciseId = :exerciseId AND ws.status = 'COMPLETED'
+        ORDER BY ws.completedAt DESC
+    """)
+    fun getCompletedSessionsForExercise(exerciseId: String): Flow<List<WorkoutSessionWithDetails>>
+
     @Query("""
         SELECT cs.* FROM completed_set cs
         INNER JOIN session_exercise se ON cs.sessionExerciseId = se.id

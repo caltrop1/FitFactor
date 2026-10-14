@@ -54,9 +54,12 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
+import com.sami.setra.ui.components.PRCard
 import com.sami.setra.ui.components.SetraCard
 import com.sami.setra.ui.components.SetraGlassSurface
 import com.sami.setra.ui.components.SetraSectionHeader
+import com.sami.setra.ui.components.charts.SetraLineChart
+import com.sami.setra.ui.screens.progress.HistorySessionCard
 import com.sami.setra.ui.theme.Dimens
 import com.sami.setra.ui.theme.SetraTheme
 
@@ -66,6 +69,7 @@ fun ExerciseDetailScreen(
     exerciseId: String,
     viewModel: ExerciseDetailViewModel,
     onBackClick: () -> Unit,
+    onSessionClick: ((Long) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     LaunchedEffect(exerciseId) {
@@ -73,6 +77,10 @@ fun ExerciseDetailScreen(
     }
 
     val exerciseWithDetails by viewModel.exerciseDetails.collectAsStateWithLifecycle()
+    val progressionPoints by viewModel.progressionPoints.collectAsStateWithLifecycle()
+    val personalRecords by viewModel.personalRecords.collectAsStateWithLifecycle()
+    val completedSessions by viewModel.completedSessions.collectAsStateWithLifecycle()
+
     var fullScreenImagePath by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -240,6 +248,37 @@ fun ExerciseDetailScreen(
 
                 Spacer(modifier = Modifier.height(Dimens.spaceLarge))
 
+                // Personal Records Section
+                if (personalRecords.isNotEmpty()) {
+                    SetraSectionHeader(title = "Personal Records")
+                    personalRecords.forEach { pr ->
+                        PRCard(
+                            record = pr,
+                            modifier = Modifier.padding(vertical = Dimens.spaceXSmall)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(Dimens.spaceLarge))
+                }
+
+                // Exercise Weight Progression Chart
+                if (progressionPoints.isNotEmpty()) {
+                    SetraSectionHeader(title = "Weight Progression")
+                    SetraGlassSurface(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Dimens.spaceMedium)
+                        ) {
+                            SetraLineChart(
+                                points = progressionPoints,
+                                valueSelector = { it.bestWeight },
+                                unit = "kg"
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(Dimens.spaceLarge))
+                }
+
                 // Primary Muscles
                 if (details.primaryMuscles.isNotEmpty()) {
                     SetraSectionHeader(title = "Primary Muscles")
@@ -326,6 +365,19 @@ fun ExerciseDetailScreen(
                                 )
                             }
                         }
+                    }
+                    Spacer(modifier = Modifier.height(Dimens.spaceLarge))
+                }
+
+                // Completed Workout History for this Exercise
+                if (completedSessions.isNotEmpty()) {
+                    SetraSectionHeader(title = "Exercise Training History")
+                    completedSessions.forEach { session ->
+                        HistorySessionCard(
+                            sessionWithDetails = session,
+                            onClick = { onSessionClick?.invoke(session.session.id) },
+                            modifier = Modifier.padding(vertical = Dimens.spaceXSmall)
+                        )
                     }
                 }
 
