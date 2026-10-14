@@ -18,4 +18,7 @@ data class RoutineExerciseWithDetails(
         entityColumn = "routineExerciseId"
     )
     val setTemplates: List<SetTemplateEntity> = emptyList()
-)
+) {
+    val sortedSetTemplates: List<SetTemplateEntity>
+        get() = setTemplates.sortedBy { it.ordering }
+}

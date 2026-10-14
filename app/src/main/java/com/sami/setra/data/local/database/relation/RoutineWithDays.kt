@@ -19,4 +19,7 @@ data class RoutineWithDays(
 
     val restDaysCount: Int
         get() = 7 - activeDaysCount
+
+    val sortedDays: List<RoutineDayWithWorkouts>
+        get() = routineDays.sortedBy { it.routineDay.dayOfWeek }
 }

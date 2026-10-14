@@ -6,17 +6,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material3.DropdownMenu
@@ -50,6 +50,8 @@ import com.sami.setra.ui.theme.SplitArtwork
 @Composable
 fun RoutineCard(
     routineWithDays: RoutineWithDays,
+    onClick: () -> Unit,
+    onDuplicateClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -59,6 +61,7 @@ fun RoutineCard(
     var showMenu by remember { mutableStateOf(false) }
 
     SetraCard(
+        onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .semantics {
@@ -133,6 +136,32 @@ fun RoutineCard(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit Routine") },
+                            onClick = {
+                                showMenu = false
+                                onClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Duplicate Routine") },
+                            onClick = {
+                                showMenu = false
+                                onDuplicateClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = null
+                                )
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("Delete Routine") },
                             onClick = {

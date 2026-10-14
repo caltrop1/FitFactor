@@ -19,14 +19,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +42,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sami.setra.ui.components.SetraCard
@@ -56,12 +55,21 @@ import com.sami.setra.ui.theme.SetraTheme
 fun RoutinesScreen(
     viewModel: RoutinesViewModel,
     onBrowseSplitsClick: () -> Unit,
+    onRoutineClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenSearch: () -> Unit = {}
+    onOpenSearch: () -> Unit = {},
+    onResumeActiveWorkout: (sessionId: Long) -> Unit = {}
 ) {
     val routines by viewModel.routines.collectAsStateWithLifecycle()
+    val activeSession by viewModel.activeSession.collectAsStateWithLifecycle()
     var selectedToggleIndex by remember { mutableIntStateOf(0) }
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+    fun handleCreateRoutine() {
+        viewModel.createNewRoutine { newRoutineId ->
+            onRoutineClick(newRoutineId)
+        }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -118,6 +126,66 @@ fun RoutinesScreen(
             }
         }
 
+        // Active Workout Banner Card (if session is in progress)
+        if (activeSession != null) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Workout in Progress",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = activeSession!!.session.workoutName.ifBlank { "Workout Session" },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            if (activeSession!!.session.routineName.isNotBlank()) {
+                                Text(
+                                    text = activeSession!!.session.routineName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = { onResumeActiveWorkout(activeSession!!.session.id) },
+                            shape = ButtonShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Resume", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
         // Segmented Pill Toggle: [ My Routines ]  [ Created by Me ]
         item {
             SetraPillToggle(
@@ -142,7 +210,7 @@ fun RoutinesScreen(
                 )
 
                 Button(
-                    onClick = onBrowseSplitsClick,
+                    onClick = { handleCreateRoutine() },
                     shape = ButtonShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -183,16 +251,23 @@ fun RoutinesScreen(
                         )
                         Spacer(modifier = Modifier.height(Dimens.spaceSmall))
                         Text(
-                            text = "Choose a built-in split from the Splits tab to create your first routine.",
+                            text = "Create a custom routine or choose a built-in split from the Splits tab.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = SetraTheme.extendedColors.textMuted
                         )
                         Spacer(modifier = Modifier.height(Dimens.spaceLarge))
-                        SetraPrimaryButton(
-                            text = "Browse Training Splits",
-                            onClick = onBrowseSplitsClick,
-                            modifier = Modifier.width(220.dp)
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSmall)) {
+                            SetraPrimaryButton(
+                                text = "Create Routine",
+                                onClick = { handleCreateRoutine() },
+                                modifier = Modifier.weight(1f)
+                            )
+                            SetraPrimaryButton(
+                                text = "Browse Splits",
+                                onClick = onBrowseSplitsClick,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
@@ -203,59 +278,16 @@ fun RoutinesScreen(
             ) { routineWithDays ->
                 RoutineCard(
                     routineWithDays = routineWithDays,
-                    onDeleteClick = { viewModel.deleteRoutine(routineWithDays.routine.id) }
-                )
-            }
-
-            // Bottom Empty / Call-to-action Banner matching mockups
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = Dimens.spaceXLarge, bottom = Dimens.spaceMedium),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FolderOpen,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(Dimens.iconLarge)
-                        )
+                    onClick = { onRoutineClick(routineWithDays.routine.id) },
+                    onDuplicateClick = {
+                        viewModel.duplicateRoutine(routineWithDays.routine.id) { newId ->
+                            onRoutineClick(newId)
+                        }
+                    },
+                    onDeleteClick = {
+                        viewModel.deleteRoutine(routineWithDays.routine.id)
                     }
-
-                    Spacer(modifier = Modifier.height(Dimens.spaceSmall))
-
-                    Text(
-                        text = "No more routines?",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-
-                    Spacer(modifier = Modifier.height(Dimens.spaceXSmall))
-
-                    Text(
-                        text = "Create your own or import a template\nfrom a friend.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SetraTheme.extendedColors.textMuted,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(Dimens.spaceMedium))
-
-                    SetraPrimaryButton(
-                        text = "+ Create Routine",
-                        onClick = onBrowseSplitsClick,
-                        modifier = Modifier.width(220.dp)
-                    )
-                }
+                )
             }
         }
     }

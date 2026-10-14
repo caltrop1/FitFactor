@@ -13,4 +13,7 @@ data class WorkoutWithExercises(
         entityColumn = "workoutId"
     )
     val routineExercises: List<RoutineExerciseWithDetails> = emptyList()
-)
+) {
+    val sortedExercises: List<RoutineExerciseWithDetails>
+        get() = routineExercises.sortedBy { it.routineExercise.ordering }
+}

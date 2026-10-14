@@ -25,6 +25,12 @@ sealed interface Screen {
     data object Routines : Screen
 
     @Serializable
+    data class RoutineDetail(val routineId: Long) : Screen
+
+    @Serializable
+    data class ExercisePicker(val workoutId: Long) : Screen
+
+    @Serializable
     data object Create : Screen
 
     @Serializable
@@ -38,6 +44,18 @@ sealed interface Screen {
 
     @Serializable
     data class ExerciseDetail(val exerciseId: String) : Screen
+
+    @Serializable
+    data class ActiveWorkout(val sessionId: Long) : Screen
+
+    @Serializable
+    data class WorkoutSummary(val sessionId: Long) : Screen
+
+    @Serializable
+    data object WorkoutHistory : Screen
+
+    @Serializable
+    data class SessionDetail(val sessionId: Long) : Screen
 }
 
 data class BottomNavItem(
