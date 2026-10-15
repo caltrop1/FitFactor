@@ -136,4 +136,81 @@ class ProgressCalculatorTest {
         assertEquals(2L, progression[1].sessionId)
         assertEquals(70.0, progression[1].bestWeight, 0.001)
     }
+
+    @Test
+    fun calculatePersonalRecords_handlesDurationBasedExercises() {
+        val now = System.currentTimeMillis()
+        val plankSet1 = CompletedSetEntity(id = 1, sessionExerciseId = 1, ordering = 0, isCompleted = true, durationSeconds = 60)
+        val plankSet2 = CompletedSetEntity(id = 2, sessionExerciseId = 1, ordering = 1, isCompleted = true, durationSeconds = 90)
+
+        val sessionEx = SessionExerciseWithDetails(
+            sessionExercise = SessionExerciseEntity(id = 1, workoutSessionId = 1, exerciseId = "plank", exerciseNameSnapshot = "Plank", ordering = 0),
+            exercise = null,
+            completedSets = listOf(plankSet1, plankSet2)
+        )
+
+        val session = WorkoutSessionWithDetails(
+            session = WorkoutSessionEntity(id = 1, workoutName = "Core Workout", startedAt = now - 3600000, completedAt = now, status = "COMPLETED"),
+            sessionExercises = listOf(sessionEx)
+        )
+
+        val records = ProgressCalculator.calculatePersonalRecords(listOf(session), exerciseIdFilter = "plank")
+        assertEquals(1, records.size)
+
+        val maxDurationRecord = records.find { it.recordType == RecordType.MAX_DURATION }
+        assertNotNull(maxDurationRecord)
+        assertEquals(90.0, maxDurationRecord!!.value, 0.001)
+        assertEquals("s", maxDurationRecord.unit)
+    }
+
+    @Test
+    fun calculateVolumeByTimeFrame_filtersByCutoffDays() {
+        val now = System.currentTimeMillis()
+        val dayMillis = 24L * 3600 * 1000
+
+        // Session 1: 5 days ago (Volume = 100kg * 10 = 1000kg)
+        val set1 = CompletedSetEntity(id = 1, sessionExerciseId = 1, ordering = 0, isCompleted = true, weight = 100.0, reps = 10.0)
+        val session1 = WorkoutSessionWithDetails(
+            session = WorkoutSessionEntity(id = 1, workoutName = "S1", startedAt = now - (5 * dayMillis), completedAt = now - (5 * dayMillis) + 3600000, status = "COMPLETED"),
+            sessionExercises = listOf(
+                SessionExerciseWithDetails(
+                    sessionExercise = SessionExerciseEntity(id = 1, workoutSessionId = 1, exerciseId = "bench", exerciseNameSnapshot = "Bench", ordering = 0),
+                    exercise = null,
+                    completedSets = listOf(set1)
+                )
+            )
+        )
+
+        // Session 2: 40 days ago (Volume = 200kg * 5 = 1000kg)
+        val set2 = CompletedSetEntity(id = 2, sessionExerciseId = 2, ordering = 0, isCompleted = true, weight = 200.0, reps = 5.0)
+        val session2 = WorkoutSessionWithDetails(
+            session = WorkoutSessionEntity(id = 2, workoutName = "S2", startedAt = now - (40 * dayMillis), completedAt = now - (40 * dayMillis) + 3600000, status = "COMPLETED"),
+            sessionExercises = listOf(
+                SessionExerciseWithDetails(
+                    sessionExercise = SessionExerciseEntity(id = 2, workoutSessionId = 2, exerciseId = "bench", exerciseNameSnapshot = "Bench", ordering = 0),
+                    exercise = null,
+                    completedSets = listOf(set2)
+                )
+            )
+        )
+
+        val sessions = listOf(session1, session2)
+
+        val weekData = ProgressCalculator.calculateVolumeByTimeFrame(sessions, TimeFrame.WEEK_1, nowMillis = now)
+        assertEquals(1, weekData.size)
+        assertEquals(1000.0, weekData[0].volumeKg, 0.001)
+
+        val allData = ProgressCalculator.calculateVolumeByTimeFrame(sessions, TimeFrame.ALL, nowMillis = now)
+        assertEquals(2, allData.size)
+    }
+
+    @Test
+    fun calculateWorkoutFrequency_handlesEmptySessionsGracefully() {
+        val stats = ProgressCalculator.calculateWorkoutFrequency(emptyList())
+        assertEquals(0, stats.totalCompletedWorkouts)
+        assertEquals(0, stats.workoutsThisWeek)
+        assertEquals(0, stats.workoutsThisMonth)
+        assertEquals(0.0, stats.totalVolumeKg, 0.001)
+        assertEquals(0, stats.totalCompletedSets)
+    }
 }

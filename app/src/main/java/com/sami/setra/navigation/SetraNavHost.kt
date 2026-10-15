@@ -27,6 +27,8 @@ import com.sami.setra.ui.screens.profile.ProfileScreen
 import com.sami.setra.ui.screens.progress.ProgressScreen
 import com.sami.setra.ui.screens.progress.ProgressViewModel
 import com.sami.setra.ui.screens.routines.RoutineDetailScreen
+import android.net.Uri
+import androidx.compose.runtime.LaunchedEffect
 import com.sami.setra.ui.screens.routines.RoutineDetailViewModel
 import com.sami.setra.ui.screens.routines.RoutinesScreen
 import com.sami.setra.ui.screens.routines.RoutinesViewModel
@@ -45,7 +47,9 @@ fun SetraNavHost(
     onThemeModeChange: (ThemeMode) -> Unit,
     onWeightUnitChange: (WeightUnit) -> Unit,
     onDistanceUnitChange: (DistanceUnit) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    pendingImportUri: Uri? = null,
+    onConsumePendingImportUri: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val application = context.applicationContext as Application
@@ -89,6 +93,14 @@ fun SetraNavHost(
         }
 
         composable<Screen.Routines> {
+            LaunchedEffect(pendingImportUri) {
+                val uri = pendingImportUri
+                if (uri != null) {
+                    routinesViewModel.loadImportFile(uri)
+                    onConsumePendingImportUri()
+                }
+            }
+
             RoutinesScreen(
                 viewModel = routinesViewModel,
                 onBrowseSplitsClick = {

@@ -79,6 +79,10 @@ interface RoutineDao {
     fun getRoutineWithDaysById(routineId: Long): Flow<RoutineWithDays?>
 
     @Transaction
+    @Query("SELECT * FROM routine WHERE isArchived = 0 ORDER BY createdAt DESC")
+    suspend fun getAllActiveRoutinesSync(): List<RoutineWithDays>
+
+    @Transaction
     @Query("SELECT * FROM routine WHERE id = :routineId LIMIT 1")
     suspend fun getRoutineWithDaysByIdSync(routineId: Long): RoutineWithDays?
 

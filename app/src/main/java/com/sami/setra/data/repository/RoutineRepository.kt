@@ -1,6 +1,12 @@
 package com.sami.setra.data.repository
 
 import android.content.Context
+import com.sami.setra.data.importexport.model.PortableDay
+import com.sami.setra.data.importexport.model.PortableExercise
+import com.sami.setra.data.importexport.model.PortableMetadata
+import com.sami.setra.data.importexport.model.PortableRoutine
+import com.sami.setra.data.importexport.model.PortableSetTemplate
+import com.sami.setra.data.importexport.model.PortableWorkout
 import com.sami.setra.data.local.database.SetraDatabase
 import com.sami.setra.data.local.database.entity.RoutineDayEntity
 import com.sami.setra.data.local.database.entity.RoutineEntity
@@ -377,5 +383,158 @@ class RoutineRepository(
             set.copy(ordering = index)
         }
         routineDao.updateSetTemplates(reordered)
+    }
+
+    suspend fun getPortableRoutine(routineId: Long): PortableRoutine? = withContext(Dispatchers.IO) {
+        val routineWithDays = routineDao.getRoutineWithDaysByIdSync(routineId) ?: return@withContext null
+        val routine = routineWithDays.routine
+
+        val daysDto = routineWithDays.sortedDays.map { dayWithWorkouts ->
+            val workoutsDto = dayWithWorkouts.sortedWorkouts.map { workoutWithExercises ->
+                val exercisesDto = workoutWithExercises.sortedExercises.map { exerciseWithDetails ->
+                    val setsDto = exerciseWithDetails.sortedSetTemplates.map { setTemplate ->
+                        PortableSetTemplate(
+                            ordering = setTemplate.ordering,
+                            setType = setTemplate.setType,
+                            targetReps = setTemplate.targetReps,
+                            targetWeight = setTemplate.targetWeight,
+                            durationSeconds = setTemplate.durationSeconds,
+                            restSeconds = setTemplate.restSeconds,
+                            targetRpe = setTemplate.targetRpe,
+                            targetRir = setTemplate.targetRir,
+                            tempo = setTemplate.tempo,
+                            isWarmup = setTemplate.isWarmup,
+                            isDropSet = setTemplate.isDropSet,
+                            isFailureSet = setTemplate.isFailureSet,
+                            notes = setTemplate.notes
+                        )
+                    }
+
+                    PortableExercise(
+                        exerciseId = exerciseWithDetails.routineExercise.exerciseId,
+                        exerciseName = exerciseWithDetails.exercise?.name ?: exerciseWithDetails.routineExercise.exerciseId,
+                        ordering = exerciseWithDetails.routineExercise.ordering,
+                        notes = exerciseWithDetails.routineExercise.notes,
+                        sets = setsDto
+                    )
+                }
+
+                PortableWorkout(
+                    name = workoutWithExercises.workout.name,
+                    description = workoutWithExercises.workout.description,
+                    ordering = workoutWithExercises.workout.ordering,
+                    exercises = exercisesDto
+                )
+            }
+
+            PortableDay(
+                dayOfWeek = dayWithWorkouts.routineDay.dayOfWeek,
+                ordering = dayWithWorkouts.routineDay.ordering,
+                workouts = workoutsDto
+            )
+        }
+
+        PortableRoutine(
+            format = PortableRoutine.FORMAT_IDENTIFIER,
+            formatVersion = PortableRoutine.CURRENT_SCHEMA_VERSION,
+            metadata = PortableMetadata(
+                name = routine.name,
+                description = routine.description,
+                creator = routine.creatorMetadata ?: "FitFactor User",
+                createdAt = java.time.Instant.ofEpochMilli(routine.createdAt).toString()
+            ),
+            days = daysDto
+        )
+    }
+
+    suspend fun importRoutine(
+        portableRoutine: PortableRoutine,
+        resolvedExerciseMap: Map<String, String>,
+        skippedExerciseIds: Set<String>,
+        customName: String? = null
+    ): Long = withContext(Dispatchers.IO) {
+        val existingActiveRoutines = routineDao.getAllActiveRoutinesSync()
+        val existingNames = existingActiveRoutines.map { it.routine.name.lowercase().trim() }.toSet()
+
+        val baseName = customName?.takeIf { it.isNotBlank() } ?: portableRoutine.metadata.name.ifBlank { "Imported Routine" }
+        var finalName = baseName
+        if (existingNames.contains(baseName.lowercase().trim())) {
+            var counter = 1
+            while (existingNames.contains("$baseName ($counter)".lowercase().trim())) {
+                counter++
+            }
+            finalName = "$baseName ($counter)"
+        }
+
+        val routineEntity = RoutineEntity(
+            name = finalName,
+            description = portableRoutine.metadata.description,
+            creatorMetadata = portableRoutine.metadata.creator ?: "Imported Routine",
+            sharedByMetadata = portableRoutine.metadata.creator,
+            imageSource = "BUILT_IN",
+            builtInImageId = "custom",
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+
+        val newRoutineId = routineDao.insertRoutine(routineEntity)
+
+        portableRoutine.days.forEach { dayDto ->
+            val dayEntity = RoutineDayEntity(
+                routineId = newRoutineId,
+                dayOfWeek = dayDto.dayOfWeek,
+                ordering = dayDto.ordering
+            )
+            val dayId = routineDao.insertRoutineDays(listOf(dayEntity)).first()
+
+            dayDto.workouts.forEach { workoutDto ->
+                val workoutEntity = WorkoutEntity(
+                    routineDayId = dayId,
+                    name = workoutDto.name,
+                    description = workoutDto.description,
+                    ordering = workoutDto.ordering
+                )
+                val workoutId = routineDao.insertWorkout(workoutEntity)
+
+                var currentOrdering = 0
+                workoutDto.exercises.forEach { exerciseDto ->
+                    if (!skippedExerciseIds.contains(exerciseDto.exerciseId)) {
+                        val targetExerciseId = resolvedExerciseMap[exerciseDto.exerciseId] ?: exerciseDto.exerciseId
+
+                        val exerciseEntity = RoutineExerciseEntity(
+                            workoutId = workoutId,
+                            exerciseId = targetExerciseId,
+                            ordering = currentOrdering++,
+                            notes = exerciseDto.notes
+                        )
+                        val exerciseId = routineDao.insertRoutineExercise(exerciseEntity)
+
+                        val setTemplates = exerciseDto.sets.mapIndexed { index, setDto ->
+                            SetTemplateEntity(
+                                routineExerciseId = exerciseId,
+                                ordering = if (setDto.ordering != 0) setDto.ordering else index,
+                                setType = setDto.setType,
+                                targetReps = setDto.targetReps,
+                                targetWeight = setDto.targetWeight,
+                                durationSeconds = setDto.durationSeconds,
+                                restSeconds = setDto.restSeconds,
+                                targetRpe = setDto.targetRpe,
+                                targetRir = setDto.targetRir,
+                                tempo = setDto.tempo,
+                                isWarmup = setDto.isWarmup,
+                                isDropSet = setDto.isDropSet,
+                                isFailureSet = setDto.isFailureSet,
+                                notes = setDto.notes
+                            )
+                        }
+                        if (setTemplates.isNotEmpty()) {
+                            routineDao.insertSetTemplates(setTemplates)
+                        }
+                    }
+                }
+            }
+        }
+
+        newRoutineId
     }
 }

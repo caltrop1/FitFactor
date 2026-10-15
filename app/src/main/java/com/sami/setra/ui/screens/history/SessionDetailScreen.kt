@@ -253,28 +253,53 @@ fun SessionDetailScreen(
                             sessionEx.sortedCompletedSets.forEachIndexed { idx, set ->
                                 val setNum = idx + 1
                                 val isDone = set.isCompleted
-                                val weightStr = set.weight?.let { "${if (it % 1.0 == 0.0) it.toInt() else it} kg" } ?: "-"
-                                val repsStr = set.reps?.let { "${it.toInt()} reps" } ?: set.durationSeconds?.let { "${it}s" } ?: "-"
-                                val setTypeTag = if (set.isWarmup || set.setType == "WARMUP") " [Warmup]" else if (set.setType != "NORMAL") " [${set.setType}]" else ""
+                                val weightVal = set.weight
+                                val weightStr = if (weightVal != null && weightVal > 0) {
+                                    if (weightVal % 1.0 == 0.0) "${weightVal.toInt()} kg" else "$weightVal kg"
+                                } else if (weightVal == 0.0) {
+                                    "BW"
+                                } else {
+                                    "-"
+                                }
 
-                                Row(
+                                val repsStr = set.reps?.let { "${it.toInt()} reps" } ?: set.durationSeconds?.let { "${it}s" } ?: "-"
+                                val setTypeTag = if (set.isWarmup || set.setType == "WARMUP") " • Warmup"
+                                else if (set.isDropSet || set.setType == "DROP") " • Drop Set"
+                                else if (set.isFailureSet || set.setType == "FAILURE") " • Failure"
+                                else if (set.setType != "NORMAL") " • ${set.setType}" else ""
+
+                                val rpeRirTag = set.rpe?.let { " @ RPE $it" } ?: set.rir?.let { " • RIR $it" } ?: ""
+
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 2.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(vertical = 3.dp)
                                 ) {
-                                    Text(
-                                        text = "Set $setNum$setTypeTag",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "$weightStr × $repsStr ${if (isDone) "✓" else ""}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = if (isDone) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Set $setNum$setTypeTag$rpeRirTag",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "$weightStr × $repsStr ${if (isDone) "✓" else ""}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = if (isDone) FontWeight.SemiBold else FontWeight.Normal,
+                                            color = if (isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                    if (!set.notes.isNullOrBlank()) {
+                                        Text(
+                                            text = set.notes,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline,
+                                            modifier = Modifier.padding(start = Dimens.spaceSmall)
+                                        )
+                                    }
                                 }
                             }
                         }

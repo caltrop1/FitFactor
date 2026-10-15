@@ -21,9 +21,28 @@ class RoutineDetailViewModel(
 ) : AndroidViewModel(application) {
 
     private val repository = RoutineRepository(application)
+    private val exportManager = com.sami.setra.data.importexport.RoutineExportManager(application, repository)
 
     val routineState: StateFlow<RoutineWithDays?> = repository.getRoutineById(routineId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun prepareRoutineShare(onReady: (android.net.Uri) -> Unit) {
+        viewModelScope.launch {
+            val result = exportManager.prepareShareUri(routineId)
+            result.onSuccess(onReady)
+        }
+    }
+
+    fun exportRoutineToUri(targetUri: android.net.Uri, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            val result = exportManager.exportToUri(routineId, targetUri)
+            result.onSuccess { onSuccess() }
+        }
+    }
+
+    suspend fun getExportFilename(): String {
+        return exportManager.getExportFilename(routineId)
+    }
 
     fun startWorkout(workoutId: Long, onStarted: (Long) -> Unit) {
         viewModelScope.launch {

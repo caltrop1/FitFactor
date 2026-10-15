@@ -1,5 +1,11 @@
 package com.sami.setra.ui.screens.routines
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,13 +32,17 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -90,6 +100,18 @@ fun RoutineDetailScreen(
     onStartWorkout: (sessionId: Long) -> Unit = {}
 ) {
     val routineWithDays by viewModel.routineState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { targetUri: Uri? ->
+        if (targetUri != null) {
+            viewModel.exportRoutineToUri(targetUri) {
+                Toast.makeText(context, "Routine exported successfully", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     var showHeaderEditDialog by remember { mutableStateOf(false) }
     var showTopMenu by remember { mutableStateOf(false) }
@@ -239,6 +261,36 @@ fun RoutineDetailScreen(
                             },
                             leadingIcon = {
                                 Icon(imageVector = Icons.Default.Edit, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share Routine") },
+                            onClick = {
+                                showTopMenu = false
+                                viewModel.prepareRoutineShare { contentUri ->
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/octet-stream"
+                                        putExtra(Intent.EXTRA_STREAM, contentUri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share FitFactor Routine"))
+                                }
+                            },
+                            leadingIcon = {
+                                Icon(imageVector = Icons.Default.Share, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Save Routine File") },
+                            onClick = {
+                                showTopMenu = false
+                                coroutineScope.launch {
+                                    val filename = viewModel.getExportFilename()
+                                    createDocumentLauncher.launch(filename)
+                                }
+                            },
+                            leadingIcon = {
+                                Icon(imageVector = Icons.Default.Download, contentDescription = null)
                             }
                         )
                         DropdownMenuItem(

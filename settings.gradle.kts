@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Setra"
+rootProject.name = "FitFactor"
 include(":app")

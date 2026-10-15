@@ -10,7 +10,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.sami.setra"
+        applicationId = "com.sami.fitfactor"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

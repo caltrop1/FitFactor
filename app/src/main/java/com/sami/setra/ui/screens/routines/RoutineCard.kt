@@ -1,7 +1,6 @@
 package com.sami.setra.ui.screens.routines
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,8 +15,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -53,7 +54,9 @@ fun RoutineCard(
     onClick: () -> Unit,
     onDuplicateClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onShareClick: () -> Unit = {},
+    onSaveFileClick: () -> Unit = {}
 ) {
     val routine = routineWithDays.routine
     val imageRes = SplitArtwork.getRoutineImageRes(routine.name, routine.builtInImageId)
@@ -145,6 +148,32 @@ fun RoutineCard(
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share Routine") },
+                            onClick = {
+                                showMenu = false
+                                onShareClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Save Routine File") },
+                            onClick = {
+                                showMenu = false
+                                onSaveFileClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
                                     contentDescription = null
                                 )
                             }

@@ -40,6 +40,15 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercise WHERE id = :exerciseId LIMIT 1")
     fun getExerciseById(exerciseId: String): Flow<ExerciseWithDetails?>
 
+    @Query("SELECT * FROM exercise WHERE id = :exerciseId LIMIT 1")
+    suspend fun getExerciseByIdSync(exerciseId: String): ExerciseEntity?
+
+    @Query("SELECT * FROM exercise WHERE LOWER(name) = LOWER(:name) LIMIT 1")
+    suspend fun getExerciseByNameSync(name: String): ExerciseEntity?
+
+    @Query("SELECT * FROM exercise ORDER BY name ASC")
+    suspend fun getAllExercisesSync(): List<ExerciseEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExercises(exercises: List<ExerciseEntity>)
 

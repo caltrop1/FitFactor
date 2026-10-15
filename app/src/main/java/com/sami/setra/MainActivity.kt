@@ -1,5 +1,6 @@
 package com.sami.setra
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -7,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,7 +19,6 @@ import com.sami.setra.navigation.SetraNavHost
 import com.sami.setra.navigation.bottomNavItems
 import com.sami.setra.navigation.navigateToBottomNavDestination
 import com.sami.setra.ui.components.SetraScaffold
-import com.sami.setra.ui.components.SetraTopBar
 import com.sami.setra.ui.theme.SetraTheme
 
 class MainActivity : ComponentActivity() {
@@ -27,6 +28,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        viewModel.handleIntent(intent)
+
         setContent {
             val userPreferences by viewModel.userPreferences.collectAsStateWithLifecycle()
 
@@ -36,6 +39,12 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        viewModel.handleIntent(intent)
     }
 }
 
@@ -47,13 +56,18 @@ fun SetraApp(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val userPreferences by viewModel.userPreferences.collectAsStateWithLifecycle()
+    val pendingImportUri by viewModel.pendingImportUri.collectAsStateWithLifecycle()
+
+    LaunchedEffect(pendingImportUri) {
+        if (pendingImportUri != null) {
+            navController.navigateToBottomNavDestination(Screen.Routines)
+        }
+    }
 
     val currentRoute = navBackStackEntry?.destination?.route
     val isExerciseDetailScreen = currentRoute?.contains("ExerciseDetail") == true
     val isSplitDetailScreen = currentRoute?.contains("SplitDetail") == true
     val isListScreen = currentRoute?.contains("ExerciseList") == true
-
-    val hasCustomTopBar = isExerciseDetailScreen || isSplitDetailScreen
 
     val currentDestination: Screen = when {
         currentRoute?.contains("Routines") == true -> Screen.Routines
@@ -79,6 +93,8 @@ fun SetraApp(
             onThemeModeChange = viewModel::setThemeMode,
             onWeightUnitChange = viewModel::setWeightUnit,
             onDistanceUnitChange = viewModel::setDistanceUnit,
+            pendingImportUri = pendingImportUri,
+            onConsumePendingImportUri = viewModel::consumePendingImportUri,
             modifier = Modifier.padding(innerPadding)
         )
     }
