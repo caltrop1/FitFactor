@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.sami.setra.data.local.database.entity.CompletedSetEntity
 import com.sami.setra.data.local.database.relation.WorkoutSessionWithDetails
 import com.sami.setra.data.repository.WorkoutSessionRepository
+import com.sami.setra.data.model.exerciseTracking
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,8 @@ import kotlinx.coroutines.launch
 
 class ActiveWorkoutViewModel(
     application: Application,
-    val sessionId: Long
+    val sessionId: Long,
+    private val defaultRestSeconds: Int = 90
 ) : AndroidViewModel(application) {
 
     private val repository = WorkoutSessionRepository(application)
@@ -82,11 +84,12 @@ class ActiveWorkoutViewModel(
         }
     }
 
-    fun updateSetActuals(completedSet: CompletedSetEntity, weight: Double?, reps: Double?, durationSeconds: Int?) {
+    fun updateSetActuals(completedSet: CompletedSetEntity, weight: Double?, reps: Double?, durationSeconds: Int?, distanceMeters: Double?) {
         val updated = completedSet.copy(
             weight = weight,
             reps = reps,
-            durationSeconds = durationSeconds
+            durationSeconds = durationSeconds,
+            distanceMeters = distanceMeters
         )
         viewModelScope.launch {
             repository.updateCompletedSet(updated)
@@ -109,8 +112,10 @@ class ActiveWorkoutViewModel(
         val exercises = session.sortedExercises
         if (exercises.isEmpty()) return
         val currentEx = exercises[_currentExerciseIndex.value]
+        val exercise = currentEx.exercise
+        val tracking = exerciseTracking(exercise?.category, exercise?.equipment, exercise?.mechanic)
         viewModelScope.launch {
-            repository.addSetToExercise(currentEx.sessionExercise.id, currentEx.totalSetsCount)
+            repository.addSetToExercise(currentEx.sessionExercise.id, currentEx.totalSetsCount, defaultRestSeconds, tracking)
         }
     }
 
@@ -193,11 +198,12 @@ class ActiveWorkoutViewModel(
 
     class Factory(
         private val application: Application,
-        private val sessionId: Long
+        private val sessionId: Long,
+        private val defaultRestSeconds: Int = 90
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return ActiveWorkoutViewModel(application, sessionId) as T
+            return ActiveWorkoutViewModel(application, sessionId, defaultRestSeconds) as T
         }
     }
 }

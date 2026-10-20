@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,6 +49,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +77,7 @@ fun RoutinesScreen(
     onRoutineClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onOpenSearch: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
     onResumeActiveWorkout: (sessionId: Long) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -85,7 +89,10 @@ fun RoutinesScreen(
     val importPreviewData by viewModel.importPreviewData.collectAsStateWithLifecycle()
     val importErrorMessage by viewModel.importErrorMessage.collectAsStateWithLifecycle()
 
-    var selectedToggleIndex by remember { mutableIntStateOf(0) }
+    var selectedToggleIndex by rememberSaveable { mutableIntStateOf(0) }
+    val displayedRoutines = if (selectedToggleIndex == 0) routines else routines.filter {
+        it.routine.creatorMetadata == "User Created Routine"
+    }
     var exerciseItemToMap by remember { mutableStateOf<ExerciseResolutionItem?>(null) }
     var currentExportRoutineId by remember { mutableLongStateOf(-1L) }
 
@@ -199,34 +206,31 @@ fun RoutinesScreen(
                         .semantics { heading() }
                 ) {
                     Text(
-                        text = "My Routines",
+                        text = "Routines",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Your saved routines and custom plans.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SetraTheme.extendedColors.textMuted
                     )
                 }
 
                 Spacer(modifier = Modifier.width(Dimens.spaceMedium))
 
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    IconButton(onClick = onOpenSearch) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search routines",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(Dimens.iconMedium)
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXSmall)) {
+                    Box(
+                        modifier = Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(onClick = onOpenSearch) {
+                            Icon(Icons.Default.Search, contentDescription = "Search routines", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(Dimens.iconMedium))
+                        }
+                    }
+                    Box(
+                        modifier = Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(onClick = onOpenProfile) {
+                            Icon(Icons.Default.Person, contentDescription = "Profile", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(Dimens.iconMedium))
+                        }
                     }
                 }
             }
@@ -309,28 +313,32 @@ fun RoutinesScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Saved Routines (${routines.size})",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "${if (selectedToggleIndex == 0) "Saved Routines" else "Created by Me"} (${displayedRoutines.size})",
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    softWrap = false
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXSmall)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     OutlinedButton(
                         onClick = { handleImportRoutineClick() },
                         shape = ButtonShape,
-                        contentPadding = PaddingValues(horizontal = Dimens.spaceSmall, vertical = Dimens.spaceXSmall),
-                        modifier = Modifier.height(38.dp)
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                        modifier = Modifier.height(38.dp).defaultMinSize(minWidth = 0.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Download,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
                         Text(
                             text = "Import",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -342,26 +350,28 @@ fun RoutinesScreen(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
-                        contentPadding = PaddingValues(horizontal = Dimens.spaceMedium, vertical = Dimens.spaceXSmall),
-                        modifier = Modifier.height(38.dp)
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                        modifier = Modifier.height(38.dp).defaultMinSize(minWidth = 0.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
                         Text(
                             text = "Create",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
             }
         }
 
-        if (routines.isEmpty()) {
+        if (displayedRoutines.isEmpty()) {
             item {
                 SetraCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -371,14 +381,14 @@ fun RoutinesScreen(
                             .padding(Dimens.spaceLarge)
                     ) {
                         Text(
-                            text = "No routines created yet",
+                            text = if (selectedToggleIndex == 0) "No routines saved yet" else "No routines created by you yet",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(Dimens.spaceSmall))
                         Text(
-                            text = "Create a custom routine, import a .fitfactor file, or choose a built-in split.",
+                            text = if (selectedToggleIndex == 0) "Create a routine, import a plan, or choose a built-in split." else "Routines you create directly will appear here.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = SetraTheme.extendedColors.textMuted
                         )
@@ -400,7 +410,7 @@ fun RoutinesScreen(
             }
         } else {
             items(
-                items = routines,
+                items = displayedRoutines,
                 key = { it.routine.id }
             ) { routineWithDays ->
                 RoutineCard(

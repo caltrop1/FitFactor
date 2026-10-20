@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import java.util.Locale
 import androidx.compose.ui.unit.dp
 import com.sami.setra.ui.components.SetraTopBar
 
@@ -176,8 +177,12 @@ fun WorkoutSummaryScreen(
                             sessionEx.sortedCompletedSets.forEachIndexed { idx, set ->
                                 val setNum = idx + 1
                                 val isDone = set.isCompleted
-                                val weightStr = set.weight?.let { "${if (it % 1.0 == 0.0) it.toInt() else it} kg" } ?: "-"
-                                val repsStr = set.reps?.let { "${it.toInt()} reps" } ?: set.durationSeconds?.let { "${it}s" } ?: "-"
+                                val metrics = buildList {
+                                    set.weight?.let { add("${if (it % 1.0 == 0.0) it.toInt() else it} kg") }
+                                    set.reps?.let { add("${it.toInt()} reps") }
+                                    set.durationSeconds?.let { add("${it}s") }
+                                    set.distanceMeters?.let { add("${String.format(Locale.getDefault(), "%.2f", it / 1000.0)} km") }
+                                }.joinToString(" × ").ifBlank { "-" }
 
                                 Row(
                                     modifier = Modifier
@@ -192,7 +197,7 @@ fun WorkoutSummaryScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "$weightStr × $repsStr ${if (isDone) "✓" else ""}",
+                                        text = "$metrics ${if (isDone) "✓" else ""}",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = if (isDone) FontWeight.SemiBold else FontWeight.Normal,
                                         color = if (isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline

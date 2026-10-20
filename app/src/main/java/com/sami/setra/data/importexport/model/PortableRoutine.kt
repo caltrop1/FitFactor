@@ -55,6 +55,7 @@ data class PortableSetTemplate(
     val targetReps: Double? = 10.0,
     val targetWeight: Double? = null,
     val durationSeconds: Int? = null,
+    val targetDistanceMeters: Double? = null,
     val restSeconds: Int? = 90,
     val targetRpe: Double? = null,
     val targetRir: Int? = null,

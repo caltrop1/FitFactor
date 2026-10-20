@@ -2,6 +2,7 @@ package com.sami.setra.ui.screens.progress
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,9 +42,6 @@ import com.sami.setra.data.local.database.relation.WorkoutSessionWithDetails
 import com.sami.setra.ui.components.PRCard
 import com.sami.setra.ui.components.ScreenPlaceholder
 import com.sami.setra.ui.components.SetraCard
-import com.sami.setra.ui.components.SetraGlassSurface
-import com.sami.setra.ui.components.SetraSectionHeader
-import com.sami.setra.ui.components.SetraTopBar
 import com.sami.setra.ui.components.charts.SetraBarChart
 import com.sami.setra.ui.theme.Dimens
 import java.text.SimpleDateFormat
@@ -64,11 +62,6 @@ fun ProgressScreen(
     val recentCompletedSessions by viewModel.recentCompletedSessions.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = {
-            SetraTopBar(
-                title = "Progress & Analytics"
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
@@ -112,11 +105,23 @@ fun ProgressScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
                     .padding(horizontal = Dimens.spaceMedium),
-                verticalArrangement = Arrangement.spacedBy(Dimens.spaceMedium)
+                verticalArrangement = Arrangement.spacedBy(Dimens.spaceSmall),
+                contentPadding = PaddingValues(
+                    top = Dimens.spaceSmall,
+                    bottom = Dimens.spaceSmall
+                )
             ) {
+                item {
+                    Text(
+                        text = "Progress & Analytics",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
                 // Top Summary Stat Grid (4 Metrics)
                 item {
-                    Spacer(modifier = Modifier.height(Dimens.spaceSmall))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSmall)
@@ -156,11 +161,9 @@ fun ProgressScreen(
 
                 // Workout Frequency Chart
                 item {
-                    SetraGlassSurface(modifier = Modifier.fillMaxWidth()) {
+                    SetraCard(modifier = Modifier.fillMaxWidth()) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(Dimens.spaceMedium)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = "Weekly Training Frequency",
@@ -189,7 +192,12 @@ fun ProgressScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            SetraSectionHeader(title = "Personal Records (PRs)")
+                            Text(
+                                text = "Personal Records (PRs)",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
                             TextButton(onClick = onNavigateToExerciseList) {
                                 Text("Exercise Library")
                             }
@@ -211,7 +219,12 @@ fun ProgressScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SetraSectionHeader(title = "Recent Workout History")
+                        Text(
+                            text = "Recent Workout History",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
                         TextButton(onClick = onNavigateToHistory) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("View All")
@@ -244,7 +257,6 @@ fun ProgressScreen(
                         Spacer(modifier = Modifier.width(Dimens.spaceSmall))
                         Text("Open Full Workout History Log")
                     }
-                    Spacer(modifier = Modifier.height(Dimens.spaceXLarge))
                 }
             }
         }
@@ -350,7 +362,7 @@ fun HistorySessionCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(Dimens.spaceSmall))
+                    Spacer(modifier = Modifier.height(Dimens.spaceSmall))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -360,7 +372,7 @@ fun HistorySessionCard(
                 Text(
                     text = dateFormatted,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(

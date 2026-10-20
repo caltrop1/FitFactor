@@ -85,7 +85,7 @@ fun PRCard(
                     Text(
                         text = record.workoutName,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

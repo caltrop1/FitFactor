@@ -253,16 +253,14 @@ fun SessionDetailScreen(
                             sessionEx.sortedCompletedSets.forEachIndexed { idx, set ->
                                 val setNum = idx + 1
                                 val isDone = set.isCompleted
-                                val weightVal = set.weight
-                                val weightStr = if (weightVal != null && weightVal > 0) {
-                                    if (weightVal % 1.0 == 0.0) "${weightVal.toInt()} kg" else "$weightVal kg"
-                                } else if (weightVal == 0.0) {
-                                    "BW"
-                                } else {
-                                    "-"
-                                }
-
-                                val repsStr = set.reps?.let { "${it.toInt()} reps" } ?: set.durationSeconds?.let { "${it}s" } ?: "-"
+                                val metrics = buildList {
+                                    set.weight?.takeIf { it > 0 }?.let { add("${it} kg") }
+                                    set.reps?.let { add("${it.toInt()} reps") }
+                                    set.durationSeconds?.let { add("${it}s") }
+                                    set.distanceMeters?.let { distance ->
+                                        add(if (distance >= 1000) "${String.format("%.2f", distance / 1000.0)} km" else "${distance.toInt()} m")
+                                    }
+                                }.joinToString(" × ").ifBlank { "-" }
                                 val setTypeTag = if (set.isWarmup || set.setType == "WARMUP") " • Warmup"
                                 else if (set.isDropSet || set.setType == "DROP") " • Drop Set"
                                 else if (set.isFailureSet || set.setType == "FAILURE") " • Failure"
@@ -286,7 +284,7 @@ fun SessionDetailScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = "$weightStr × $repsStr ${if (isDone) "✓" else ""}",
+                                            text = "$metrics ${if (isDone) "✓" else ""}",
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = if (isDone) FontWeight.SemiBold else FontWeight.Normal,
                                             color = if (isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline

@@ -93,20 +93,30 @@ class RoutineRepository(
                 val workoutIdList = routineDao.insertWorkouts(listOf(workoutEntity))
                 val workoutId = workoutIdList.first()
 
-                day.sampleExercises.forEachIndexed { exIndex, exerciseId ->
+                day.sampleExercises.forEachIndexed { exIndex, exercise ->
                     val routineExerciseEntity = RoutineExerciseEntity(
                         workoutId = workoutId,
-                        exerciseId = exerciseId,
+                        exerciseId = exercise.exerciseId,
                         ordering = exIndex
                     )
                     val routineExerciseIdList = routineDao.insertRoutineExercises(listOf(routineExerciseEntity))
                     val routineExerciseId = routineExerciseIdList.first()
 
-                    val setTemplates = listOf(
-                        SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 0, targetReps = 10.0, restSeconds = 90),
-                        SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 1, targetReps = 10.0, restSeconds = 90),
-                        SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 2, targetReps = 10.0, restSeconds = 90)
-                    )
+                    val setCount = exercise.sets.substringAfterLast('-').toIntOrNull() ?: 3
+                    val targetReps = exercise.repRange.substringBefore('-').toDoubleOrNull()
+                    val setNotes = if (exercise.repRange == "sets") {
+                        "Template prescription: ${exercise.sets} sets; no rep target"
+                    } else {
+                        "Template prescription: ${exercise.sets} sets × ${exercise.repRange} reps"
+                    }
+                    val setTemplates = (0 until setCount).map { setIndex ->
+                        SetTemplateEntity(
+                            routineExerciseId = routineExerciseId,
+                            ordering = setIndex,
+                            targetReps = targetReps,
+                            notes = setNotes
+                        )
+                    }
                     routineDao.insertSetTemplates(setTemplates)
                 }
             }
@@ -184,6 +194,7 @@ class RoutineRepository(
                             targetReps = oldSet.targetReps,
                             targetWeight = oldSet.targetWeight,
                             durationSeconds = oldSet.durationSeconds,
+                            targetDistanceMeters = oldSet.targetDistanceMeters,
                             restSeconds = oldSet.restSeconds,
                             targetRpe = oldSet.targetRpe,
                             targetRir = oldSet.targetRir,
@@ -255,6 +266,7 @@ class RoutineRepository(
                     targetReps = oldSet.targetReps,
                     targetWeight = oldSet.targetWeight,
                     durationSeconds = oldSet.durationSeconds,
+                    targetDistanceMeters = oldSet.targetDistanceMeters,
                     restSeconds = oldSet.restSeconds,
                     targetRpe = oldSet.targetRpe,
                     targetRir = oldSet.targetRir,
@@ -296,9 +308,9 @@ class RoutineRepository(
 
         // Add 3 default set templates
         val setTemplates = listOf(
-            SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 0, targetReps = 10.0, restSeconds = 90),
-            SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 1, targetReps = 10.0, restSeconds = 90),
-            SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 2, targetReps = 10.0, restSeconds = 90)
+            SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 0, targetReps = 10.0),
+            SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 1, targetReps = 10.0),
+            SetTemplateEntity(routineExerciseId = routineExerciseId, ordering = 2, targetReps = 10.0)
         )
         routineDao.insertSetTemplates(setTemplates)
 
@@ -329,6 +341,7 @@ class RoutineRepository(
                 targetReps = oldSet.targetReps,
                 targetWeight = oldSet.targetWeight,
                 durationSeconds = oldSet.durationSeconds,
+                targetDistanceMeters = oldSet.targetDistanceMeters,
                 restSeconds = oldSet.restSeconds,
                 targetRpe = oldSet.targetRpe,
                 targetRir = oldSet.targetRir,
@@ -364,7 +377,7 @@ class RoutineRepository(
             ordering = nextOrdering,
             targetReps = lastSet?.targetReps ?: 10.0,
             targetWeight = lastSet?.targetWeight,
-            restSeconds = lastSet?.restSeconds ?: 90,
+            restSeconds = lastSet?.restSeconds,
             setType = "NORMAL"
         )
         routineDao.insertSetTemplate(newSet)
@@ -399,6 +412,7 @@ class RoutineRepository(
                             targetReps = setTemplate.targetReps,
                             targetWeight = setTemplate.targetWeight,
                             durationSeconds = setTemplate.durationSeconds,
+                            targetDistanceMeters = setTemplate.targetDistanceMeters,
                             restSeconds = setTemplate.restSeconds,
                             targetRpe = setTemplate.targetRpe,
                             targetRir = setTemplate.targetRir,
@@ -517,6 +531,7 @@ class RoutineRepository(
                                 targetReps = setDto.targetReps,
                                 targetWeight = setDto.targetWeight,
                                 durationSeconds = setDto.durationSeconds,
+                                targetDistanceMeters = setDto.targetDistanceMeters,
                                 restSeconds = setDto.restSeconds,
                                 targetRpe = setDto.targetRpe,
                                 targetRir = setDto.targetRir,

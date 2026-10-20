@@ -15,6 +15,35 @@ import org.junit.Test
 class PortableRoutineSerializationTest {
 
     @Test
+    fun `cardio distance and duration targets survive serialization`() {
+        val routine = PortableRoutine(
+            metadata = PortableMetadata(name = "Cardio"),
+            days = listOf(
+                PortableDay(
+                    dayOfWeek = 1,
+                    workouts = listOf(
+                        PortableWorkout(
+                            name = "Run",
+                            exercises = listOf(
+                                PortableExercise(
+                                    exerciseId = "trail_running",
+                                    exerciseName = "Trail Running",
+                                    sets = listOf(PortableSetTemplate(durationSeconds = 1800, targetDistanceMeters = 5000.0))
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val restored = RoutineSerializer.deserialize(RoutineSerializer.serialize(routine))
+        val set = restored.days.single().workouts.single().exercises.single().sets.single()
+        assertEquals(1800, set.durationSeconds)
+        assertEquals(5000.0, set.targetDistanceMeters)
+    }
+
+    @Test
     fun `serialize and deserialize round trip preserves routine data`() {
         val originalRoutine = PortableRoutine(
             format = "fitfactor-routine",

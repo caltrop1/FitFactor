@@ -2,6 +2,7 @@ package com.sami.setra.ui.screens.splits
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,17 +34,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sami.setra.data.model.SplitTemplate
+import com.sami.setra.R
 import com.sami.setra.ui.components.SetraCard
 import com.sami.setra.ui.components.SetraPillToggle
 import com.sami.setra.ui.theme.Dimens
@@ -54,11 +62,14 @@ import com.sami.setra.ui.theme.SplitTealAccent
 fun SplitsScreen(
     splitsViewModel: SplitsViewModel,
     onSplitClick: (String) -> Unit,
+    onRoutineClick: (Long) -> Unit,
     onOpenSearch: () -> Unit,
+    onCreateClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val splits = splitsViewModel.splits
-    var selectedToggleIndex by remember { mutableIntStateOf(0) }
+    val mySplits by splitsViewModel.routines.collectAsState()
+    var selectedToggleIndex by rememberSaveable { mutableIntStateOf(0) }
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
@@ -78,21 +89,24 @@ fun SplitsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { heading() }
+                Row(
+                    modifier = Modifier.weight(1f).semantics { heading() },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Splits",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                    Image(
+                        painter = painterResource(R.drawable.ic_fitfactor_mark),
+                        contentDescription = null,
+                        modifier = Modifier.size(34.dp)
                     )
+                    Spacer(modifier = Modifier.width(Dimens.spaceSmall))
                     Text(
-                        text = "Build your strength. One split at a time.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SetraTheme.extendedColors.textMuted
+                        text = buildAnnotatedString {
+                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.onBackground)) { append("Fit") }
+                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("Factor") }
+                        },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
@@ -126,8 +140,7 @@ fun SplitsScreen(
             )
         }
 
-        // Section Title: Popular Splits
-        item {
+        if (selectedToggleIndex == 0) item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -149,31 +162,41 @@ fun SplitsScreen(
                     )
                 }
 
-                Text(
-                    text = "See all >",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { }
-                )
             }
         }
 
-        // Split Cards
-        items(
-            items = splits.filter { it.id != "custom" },
-            key = { it.id }
-        ) { split ->
-            SplitCard(
-                split = split,
-                onSplitClick = { onSplitClick(split.id) }
-            )
+        if (selectedToggleIndex == 0) {
+            items(splits.filter { it.id != "custom" }, key = { it.id }) { split ->
+                SplitCard(split = split, onSplitClick = { onSplitClick(split.id) })
+            }
+        } else {
+            if (mySplits.isEmpty()) {
+                item {
+                    SetraCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "No saved splits yet. Choose a built-in split from Browse to add one here.",
+                            modifier = Modifier.padding(Dimens.spaceMedium),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = SetraTheme.extendedColors.textMuted
+                        )
+                    }
+                }
+            } else {
+                items(mySplits, key = { it.routine.id }) { routine ->
+                    com.sami.setra.ui.screens.routines.RoutineCard(
+                        routineWithDays = routine,
+                        onClick = { onRoutineClick(routine.routine.id) },
+                        onDuplicateClick = {},
+                        onDeleteClick = {}
+                    )
+                }
+            }
         }
 
         // Custom Split Bottom Card
-        item {
+        if (selectedToggleIndex == 0) item {
             SetraCard(
-                onClick = { onSplitClick("custom") },
+                onClick = onCreateClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -204,15 +227,10 @@ fun SplitsScreen(
 
                         Column {
                             Text(
-                                text = "Want something custom?",
+                                text = "Create",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Create your own routine or import a plan.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = SetraTheme.extendedColors.textMuted
                             )
                         }
                     }

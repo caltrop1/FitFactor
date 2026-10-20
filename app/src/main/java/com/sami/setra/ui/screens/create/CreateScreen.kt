@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -38,10 +40,11 @@ fun CreateScreen(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = Dimens.spaceMedium),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(Dimens.spaceMedium))
+        Spacer(modifier = Modifier.height(Dimens.spaceSmall))
 
         Column(
             modifier = Modifier
@@ -61,19 +64,19 @@ fun CreateScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(Dimens.spaceLarge))
+        Spacer(modifier = Modifier.height(Dimens.spaceMedium))
 
         // Card 1: Create Custom Routine
         SetraCard(
             onClick = onCreateRoutineClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(Dimens.spaceSmall)) {
+            Column {
                 Icon(
                     imageVector = Icons.Default.AddCircle,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = Dimens.spaceSmall)
+                    modifier = Modifier.padding(bottom = Dimens.spaceXSmall)
                 )
                 Text(
                     text = "Create Custom Routine",
@@ -87,7 +90,7 @@ fun CreateScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = SetraTheme.extendedColors.textMuted
                 )
-                Spacer(modifier = Modifier.height(Dimens.spaceMedium))
+                Spacer(modifier = Modifier.height(Dimens.spaceSmall))
                 SetraPrimaryButton(
                     text = "Build Routine",
                     onClick = onCreateRoutineClick
@@ -95,19 +98,19 @@ fun CreateScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(Dimens.spaceMedium))
+        Spacer(modifier = Modifier.height(Dimens.spaceSmall))
 
         // Card 2: Browse Splits
         SetraCard(
             onClick = onBrowseSplitsClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(Dimens.spaceSmall)) {
+            Column {
                 Icon(
                     imageVector = Icons.Default.GridView,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = Dimens.spaceSmall)
+                    modifier = Modifier.padding(bottom = Dimens.spaceXSmall)
                 )
                 Text(
                     text = "Use Pre-made Training Split",
@@ -117,11 +120,11 @@ fun CreateScreen(
                 )
                 Spacer(modifier = Modifier.height(Dimens.spaceXSmall))
                 Text(
-                    text = "Choose from PPL, Upper/Lower, Arnold Split, Bro Split or Full Body.",
+                    text = "Choose from PPL, Upper/Lower, Arnold Split, Body Part Split or Full Body.",
                     style = MaterialTheme.typography.bodySmall,
                     color = SetraTheme.extendedColors.textMuted
                 )
-                Spacer(modifier = Modifier.height(Dimens.spaceMedium))
+                Spacer(modifier = Modifier.height(Dimens.spaceSmall))
                 SetraSecondaryButton(
                     text = "Browse Training Splits",
                     onClick = onBrowseSplitsClick
@@ -129,19 +132,19 @@ fun CreateScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(Dimens.spaceMedium))
+        Spacer(modifier = Modifier.height(Dimens.spaceSmall))
 
         // Card 3: Browse Exercises
         SetraCard(
             onClick = onBrowseExercisesClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(Dimens.spaceSmall)) {
+            Column {
                 Icon(
                     imageVector = Icons.Default.FitnessCenter,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = Dimens.spaceSmall)
+                    modifier = Modifier.padding(bottom = Dimens.spaceXSmall)
                 )
                 Text(
                     text = "Offline Exercise Database",
@@ -155,7 +158,7 @@ fun CreateScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = SetraTheme.extendedColors.textMuted
                 )
-                Spacer(modifier = Modifier.height(Dimens.spaceMedium))
+                Spacer(modifier = Modifier.height(Dimens.spaceSmall))
                 SetraSecondaryButton(
                     text = "Browse Exercises",
                     onClick = onBrowseExercisesClick

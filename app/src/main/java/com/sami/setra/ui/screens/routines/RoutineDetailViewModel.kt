@@ -10,6 +10,8 @@ import com.sami.setra.data.local.database.entity.SetTemplateEntity
 import com.sami.setra.data.local.database.entity.WorkoutEntity
 import com.sami.setra.data.local.database.relation.RoutineWithDays
 import com.sami.setra.data.repository.RoutineRepository
+import com.sami.setra.data.local.preferences.UserPreferencesRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -46,8 +48,9 @@ class RoutineDetailViewModel(
 
     fun startWorkout(workoutId: Long, onStarted: (Long) -> Unit) {
         viewModelScope.launch {
+            val preferences = UserPreferencesRepository(getApplication()).userPreferencesFlow.first()
             val sessionRepo = com.sami.setra.data.repository.WorkoutSessionRepository(getApplication())
-            val sessionId = sessionRepo.startWorkout(workoutId)
+            val sessionId = sessionRepo.startWorkout(workoutId, preferences.defaultRestSeconds)
             onStarted(sessionId)
         }
     }

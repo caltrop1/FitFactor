@@ -70,7 +70,7 @@ fun SetraApp(
     val isListScreen = currentRoute?.contains("ExerciseList") == true
 
     val currentDestination: Screen = when {
-        currentRoute?.contains("Routines") == true -> Screen.Routines
+        currentRoute?.contains("Routine") == true -> Screen.Routines
         currentRoute?.contains("Create") == true -> Screen.Create
         currentRoute?.contains("Progress") == true -> Screen.Progress
         currentRoute?.contains("Profile") == true -> Screen.Profile
@@ -93,6 +93,7 @@ fun SetraApp(
             onThemeModeChange = viewModel::setThemeMode,
             onWeightUnitChange = viewModel::setWeightUnit,
             onDistanceUnitChange = viewModel::setDistanceUnit,
+            onDefaultRestSecondsChange = viewModel::setDefaultRestSeconds,
             pendingImportUri = pendingImportUri,
             onConsumePendingImportUri = viewModel::consumePendingImportUri,
             modifier = Modifier.padding(innerPadding)

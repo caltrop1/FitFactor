@@ -66,6 +66,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sami.setra.data.local.database.entity.CompletedSetEntity
 import com.sami.setra.data.local.database.relation.SessionExerciseWithDetails
+import com.sami.setra.data.local.preferences.DistanceUnit
+import com.sami.setra.data.model.ExerciseTracking
+import com.sami.setra.data.model.exerciseTracking
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,7 +76,8 @@ import java.util.Locale
 fun ActiveWorkoutScreen(
     viewModel: ActiveWorkoutViewModel,
     onFinishWorkoutClick: () -> Unit,
-    onCancelWorkoutClick: () -> Unit
+    onCancelWorkoutClick: () -> Unit,
+    distanceUnit: DistanceUnit = DistanceUnit.KM
 ) {
     val session by viewModel.sessionState.collectAsState()
     val currentIdx by viewModel.currentExerciseIndex.collectAsState()
@@ -265,8 +269,9 @@ fun ActiveWorkoutScreen(
                         }
 
                         // Sets Table Header
+                        val tracking = exerciseTracking(activeExercise.exercise?.category, activeExercise.exercise?.equipment, activeExercise.exercise?.mechanic)
                         item {
-                            SetsTableHeader()
+                            SetsTableHeader(tracking, distanceUnit)
                         }
 
                         // Set Rows
@@ -274,8 +279,10 @@ fun ActiveWorkoutScreen(
                             SetRowCard(
                                 setNumber = setIndex + 1,
                                 completedSet = completedSet,
-                                onUpdateActuals = { weight, reps, duration ->
-                                    viewModel.updateSetActuals(completedSet, weight, reps, duration)
+                                tracking = tracking,
+                                distanceUnit = distanceUnit,
+                                onUpdateActuals = { weight, reps, duration, distance ->
+                                    viewModel.updateSetActuals(completedSet, weight, reps, duration, distance)
                                 },
                                 onToggleComplete = { isDone ->
                                     viewModel.toggleSetCompletion(completedSet, isDone)
@@ -630,7 +637,7 @@ private fun PreviousPerformanceCard(
 }
 
 @Composable
-private fun SetsTableHeader() {
+private fun SetsTableHeader(tracking: ExerciseTracking, distanceUnit: DistanceUnit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -638,11 +645,13 @@ private fun SetsTableHeader() {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("SET", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(48.dp))
-        Text("TARGET", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(72.dp))
-        Text("KG", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(70.dp), textAlign = TextAlign.Center)
-        Text("REPS", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(70.dp), textAlign = TextAlign.Center)
-        Text("DONE", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
+        Text("SET", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(44.dp))
+        Text("TARGET", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        if (tracking.externalResistance) Text("KG", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        if (tracking.repetitions) Text("REPS", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        if (tracking.duration) Text("SEC", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        if (tracking.distance) Text(distanceUnit.name, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        Text("DONE", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(44.dp), textAlign = TextAlign.Center)
     }
 }
 
@@ -650,14 +659,19 @@ private fun SetsTableHeader() {
 private fun SetRowCard(
     setNumber: Int,
     completedSet: CompletedSetEntity,
-    onUpdateActuals: (Double?, Double?, Int?) -> Unit,
+    tracking: ExerciseTracking,
+    distanceUnit: DistanceUnit,
+    onUpdateActuals: (Double?, Double?, Int?, Double?) -> Unit,
     onToggleComplete: (Boolean) -> Unit
 ) {
     var weightText by remember(completedSet.weight) {
         mutableStateOf(completedSet.weight?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "")
     }
-    var repsText by remember(completedSet.reps, completedSet.durationSeconds) {
-        mutableStateOf(completedSet.reps?.toInt()?.toString() ?: completedSet.durationSeconds?.toString() ?: "")
+    var repsText by remember(completedSet.reps) { mutableStateOf(completedSet.reps?.toInt()?.toString() ?: "") }
+    var durationText by remember(completedSet.durationSeconds) { mutableStateOf(completedSet.durationSeconds?.toString() ?: "") }
+    var distanceText by remember(completedSet.distanceMeters) {
+        val value = completedSet.distanceMeters?.let { if (distanceUnit == DistanceUnit.KM) it / 1000.0 else it / 1609.344 }
+        mutableStateOf(value?.takeIf { it > 0 }?.toString() ?: "")
     }
 
     val isDone = completedSet.isCompleted
@@ -670,99 +684,78 @@ private fun SetRowCard(
             containerColor = if (isDone) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Set Number & Type
-            Column(modifier = Modifier.width(48.dp)) {
-                Text(
-                    text = "$setNumber",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                if (completedSet.setType != "NORMAL") {
-                    Text(
-                        text = completedSet.setType.take(1),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.width(36.dp)) {
+                    Text("$setNumber", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    if (completedSet.setType != "NORMAL") Text(completedSet.setType.take(1), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    val targetSummary = buildList {
+                        if (tracking.externalResistance) completedSet.targetWeight?.let { add("${it}kg") }
+                        if (tracking.repetitions) completedSet.targetReps?.let { add("${it.toInt()} reps") }
+                        if (tracking.duration) completedSet.targetDurationSeconds?.let { add("${it}s") }
+                        if (tracking.distance) completedSet.targetDistanceMeters?.let { add("${it / if (distanceUnit == DistanceUnit.KM) 1000.0 else 1609.344} ${distanceUnit.name.lowercase()}") }
+                    }.joinToString(" · ").ifBlank { "No target" }
+                    Text(targetSummary, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Box(
+                    modifier = Modifier.size(40.dp).clip(CircleShape)
+                        .background(if (isDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { onToggleComplete(!isDone) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = if (isDone) "Mark set incomplete" else "Complete set", tint = if (isDone) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-
-            // Target Info
-            Column(modifier = Modifier.width(72.dp)) {
-                val targetW = completedSet.targetWeight?.let { if (it % 1.0 == 0.0) "${it.toInt()}kg" else "${it}kg" }
-                val targetR = completedSet.targetReps?.let { "${it.toInt()}r" } ?: completedSet.targetDurationSeconds?.let { "${it}s" }
-                Text(
-                    text = targetW ?: "-",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = targetR ?: "-",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Weight Input
-            OutlinedTextField(
-                value = weightText,
-                onValueChange = { input ->
-                    weightText = input
-                    val newWeight = input.toDoubleOrNull()
-                    val repsVal = repsText.toDoubleOrNull()
-                    onUpdateActuals(newWeight, repsVal, null)
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier
-                    .width(72.dp)
-                    .height(52.dp),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-                singleLine = true
-            )
-
-            // Reps Input
-            OutlinedTextField(
-                value = repsText,
-                onValueChange = { input ->
-                    repsText = input
-                    val newWeight = weightText.toDoubleOrNull()
-                    val repsVal = input.toDoubleOrNull()
-                    onUpdateActuals(newWeight, repsVal, input.toIntOrNull())
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier
-                    .width(72.dp)
-                    .height(52.dp),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-                singleLine = true
-            )
-
-            // Complete Checkbox Button
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    .clickable {
-                        val newDone = !isDone
-                        onToggleComplete(newDone)
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Complete Set",
-                    tint = if (isDone) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (tracking.externalResistance) {
+                    MetricInput(weightText, "kg", Modifier.weight(1f), { input ->
+                        weightText = input
+                        onUpdateActuals(input.toDoubleOrNull(), repsText.toDoubleOrNull(), durationText.toIntOrNull(), distanceValue(distanceText, distanceUnit))
+                    })
+                }
+                if (tracking.repetitions) {
+                    MetricInput(repsText, "reps", Modifier.weight(1f), { input ->
+                        repsText = input
+                        onUpdateActuals(weightText.toDoubleOrNull(), input.toDoubleOrNull(), durationText.toIntOrNull(), distanceValue(distanceText, distanceUnit))
+                    })
+                }
+                if (tracking.duration) {
+                    MetricInput(durationText, "sec", Modifier.weight(1f), { input ->
+                        durationText = input
+                        onUpdateActuals(weightText.toDoubleOrNull(), repsText.toDoubleOrNull(), input.toIntOrNull(), distanceValue(distanceText, distanceUnit))
+                    })
+                }
+                if (tracking.distance) {
+                    MetricInput(distanceText, distanceUnit.name.lowercase(), Modifier.weight(1f), { input ->
+                        distanceText = input
+                        onUpdateActuals(weightText.toDoubleOrNull(), repsText.toDoubleOrNull(), durationText.toIntOrNull(), distanceValue(input, distanceUnit))
+                    })
+                }
             }
         }
     }
+}
+
+@Composable
+private fun MetricInput(value: String, label: String, modifier: Modifier, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, maxLines = 1) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = modifier.height(58.dp),
+        textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+        singleLine = true
+    )
+}
+
+private fun distanceValue(value: String, unit: DistanceUnit): Double? = value.toDoubleOrNull()?.let {
+    it * if (unit == DistanceUnit.KM) 1000.0 else 1609.344
 }

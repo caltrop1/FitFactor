@@ -12,6 +12,7 @@ class UserPreferencesTest {
         assertEquals(ThemeMode.SYSTEM, prefs.themeMode)
         assertEquals(WeightUnit.KG, prefs.weightUnit)
         assertEquals(DistanceUnit.KM, prefs.distanceUnit)
+        assertEquals(90, prefs.defaultRestSeconds)
     }
 
     @Test
@@ -19,10 +20,12 @@ class UserPreferencesTest {
         val prefs = UserPreferences(
             themeMode = ThemeMode.DARK,
             weightUnit = WeightUnit.LBS,
-            distanceUnit = DistanceUnit.MILES
+            distanceUnit = DistanceUnit.MILES,
+            defaultRestSeconds = 135
         )
         assertEquals(ThemeMode.DARK, prefs.themeMode)
         assertEquals(WeightUnit.LBS, prefs.weightUnit)
         assertEquals(DistanceUnit.MILES, prefs.distanceUnit)
+        assertEquals(135, prefs.defaultRestSeconds)
     }
 }

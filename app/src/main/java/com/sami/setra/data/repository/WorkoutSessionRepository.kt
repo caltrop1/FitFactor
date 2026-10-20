@@ -9,6 +9,8 @@ import com.sami.setra.data.local.database.relation.WorkoutSessionWithDetails
 import com.sami.setra.data.model.ExerciseProgressionPoint
 import com.sami.setra.data.model.PersonalRecord
 import com.sami.setra.data.model.WorkoutFrequencyStats
+import com.sami.setra.data.model.exerciseTracking
+import com.sami.setra.data.model.ExerciseTracking
 import com.sami.setra.domain.ProgressCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -60,7 +62,7 @@ class WorkoutSessionRepository(
         workoutSessionDao.deleteWorkoutSession(sessionId)
     }
 
-    suspend fun startWorkout(workoutId: Long): Long = withContext(Dispatchers.IO) {
+    suspend fun startWorkout(workoutId: Long, defaultRestSeconds: Int = 90): Long = withContext(Dispatchers.IO) {
         // Prevent duplicate creation if an active session already exists
         val existingActive = workoutSessionDao.getActiveWorkoutSessionSync()
         if (existingActive != null && existingActive.session.workoutId == workoutId) {
@@ -88,6 +90,7 @@ class WorkoutSessionRepository(
         workoutWithDetails.sortedExercises.forEachIndexed { exIndex, routineExDetails ->
             val exEntity = routineExDetails.exercise
             val routineEx = routineExDetails.routineExercise
+            val tracking = exerciseTracking(exEntity?.category, exEntity?.equipment, exEntity?.mechanic)
 
             val sessionExEntity = SessionExerciseEntity(
                 workoutSessionId = sessionId,
@@ -106,13 +109,15 @@ class WorkoutSessionRepository(
                         sessionExerciseId = sessionExId,
                         ordering = setIndex,
                         setType = tmpl.setType,
-                        targetWeight = tmpl.targetWeight,
-                        targetReps = tmpl.targetReps,
-                        targetDurationSeconds = tmpl.durationSeconds,
-                        restSeconds = tmpl.restSeconds ?: 90,
-                        weight = tmpl.targetWeight,
-                        reps = tmpl.targetReps,
-                        durationSeconds = tmpl.durationSeconds,
+                        targetWeight = tmpl.targetWeight.takeIf { tracking.externalResistance },
+                        targetReps = tmpl.targetReps.takeIf { tracking.repetitions },
+                        targetDurationSeconds = tmpl.durationSeconds.takeIf { tracking.duration },
+                        targetDistanceMeters = tmpl.targetDistanceMeters.takeIf { tracking.distance },
+                        restSeconds = tmpl.restSeconds ?: defaultRestSeconds,
+                        weight = tmpl.targetWeight.takeIf { tracking.externalResistance },
+                        reps = tmpl.targetReps.takeIf { tracking.repetitions },
+                        durationSeconds = tmpl.durationSeconds.takeIf { tracking.duration },
+                        distanceMeters = tmpl.targetDistanceMeters.takeIf { tracking.distance },
                         rpe = tmpl.targetRpe,
                         rir = tmpl.targetRir,
                         tempo = tmpl.tempo,
@@ -131,11 +136,12 @@ class WorkoutSessionRepository(
                         ordering = setIndex,
                         setType = "NORMAL",
                         targetWeight = null,
-                        targetReps = 10.0,
+                        targetReps = 10.0.takeIf { tracking.repetitions },
                         targetDurationSeconds = null,
-                        restSeconds = 90,
+                        targetDistanceMeters = null,
+                        restSeconds = defaultRestSeconds,
                         weight = null,
-                        reps = 10.0,
+                        reps = 10.0.takeIf { tracking.repetitions },
                         durationSeconds = null,
                         isCompleted = false
                     )
@@ -159,16 +165,21 @@ class WorkoutSessionRepository(
         workoutSessionDao.updateCompletedSet(updatedSet)
     }
 
-    suspend fun addSetToExercise(sessionExerciseId: Long, currentSetsCount: Int) = withContext(Dispatchers.IO) {
+    suspend fun addSetToExercise(
+        sessionExerciseId: Long,
+        currentSetsCount: Int,
+        defaultRestSeconds: Int = 90,
+        tracking: ExerciseTracking = ExerciseTracking(true, true, false, false)
+    ) = withContext(Dispatchers.IO) {
         val newSet = CompletedSetEntity(
             sessionExerciseId = sessionExerciseId,
             ordering = currentSetsCount,
             setType = "NORMAL",
             targetWeight = null,
-            targetReps = 10.0,
-            restSeconds = 90,
+            targetReps = 10.0.takeIf { tracking.repetitions },
+            restSeconds = defaultRestSeconds,
             weight = null,
-            reps = 10.0,
+            reps = 10.0.takeIf { tracking.repetitions },
             isCompleted = false
         )
         workoutSessionDao.insertCompletedSets(listOf(newSet))

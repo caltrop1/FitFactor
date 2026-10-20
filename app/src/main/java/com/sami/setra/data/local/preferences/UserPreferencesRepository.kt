@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sami.setra.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,7 @@ class UserPreferencesRepository(private val context: Context) {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
+        val DEFAULT_REST_SECONDS = intPreferencesKey("default_rest_seconds")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
@@ -28,7 +30,8 @@ class UserPreferencesRepository(private val context: Context) {
         UserPreferences(
             themeMode = runCatching { ThemeMode.valueOf(themeModeString) }.getOrDefault(ThemeMode.SYSTEM),
             weightUnit = runCatching { WeightUnit.valueOf(weightUnitString) }.getOrDefault(WeightUnit.KG),
-            distanceUnit = runCatching { DistanceUnit.valueOf(distanceUnitString) }.getOrDefault(DistanceUnit.KM)
+            distanceUnit = runCatching { DistanceUnit.valueOf(distanceUnitString) }.getOrDefault(DistanceUnit.KM),
+            defaultRestSeconds = (preferences[PreferencesKeys.DEFAULT_REST_SECONDS] ?: 90).coerceIn(15, 600)
         )
     }
 
@@ -47,6 +50,12 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setDistanceUnit(distanceUnit: DistanceUnit) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DISTANCE_UNIT] = distanceUnit.name
+        }
+    }
+
+    suspend fun setDefaultRestSeconds(seconds: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DEFAULT_REST_SECONDS] = seconds.coerceIn(15, 600)
         }
     }
 }

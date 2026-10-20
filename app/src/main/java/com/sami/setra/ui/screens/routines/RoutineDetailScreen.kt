@@ -68,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +80,8 @@ import com.sami.setra.data.local.database.entity.WorkoutEntity
 import com.sami.setra.data.local.database.relation.RoutineDayWithWorkouts
 import com.sami.setra.data.local.database.relation.RoutineExerciseWithDetails
 import com.sami.setra.data.local.database.relation.WorkoutWithExercises
+import com.sami.setra.data.model.ExerciseTracking
+import com.sami.setra.data.model.exerciseTracking
 import com.sami.setra.ui.components.SetraCard
 import com.sami.setra.ui.components.SetraGlassSurface
 import com.sami.setra.ui.components.SetraPrimaryButton
@@ -130,6 +133,7 @@ fun RoutineDetailScreen(
 
     val routine = routineWithDays!!.routine
     val days = routineWithDays!!.sortedDays
+    var expandedDayId by remember(routine.id) { mutableStateOf<Long?>(null) }
 
     // Header edit dialog
     if (showHeaderEditDialog) {
@@ -408,6 +412,14 @@ fun RoutineDetailScreen(
                 RoutineDayCard(
                     dayName = dayName,
                     dayWithWorkouts = dayWithWorkouts,
+                    isExpanded = expandedDayId == dayWithWorkouts.routineDay.id,
+                    onToggleExpanded = {
+                        expandedDayId = if (expandedDayId == dayWithWorkouts.routineDay.id) {
+                            null
+                        } else {
+                            dayWithWorkouts.routineDay.id
+                        }
+                    },
                     onStartWorkout = { workoutId ->
                         viewModel.startWorkout(workoutId) { sessionId ->
                             onStartWorkout(sessionId)
@@ -457,6 +469,8 @@ fun RoutineDetailScreen(
 fun RoutineDayCard(
     dayName: String,
     dayWithWorkouts: RoutineDayWithWorkouts,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
     onStartWorkout: (workoutId: Long) -> Unit,
     onAddWorkout: () -> Unit,
     onEditWorkout: (WorkoutWithExercises) -> Unit,
@@ -481,78 +495,66 @@ fun RoutineDayCard(
 
     SetraCard(
         modifier = modifier.fillMaxWidth(),
-        backgroundColor = if (isRestDay) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
+        backgroundColor = if (isExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant,
+        borderColor = if (isExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.42f) else Color.Transparent,
+        onClick = onToggleExpanded
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Day Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isRestDay) MaterialTheme.colorScheme.surface
-                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isRestDay) Icons.Default.Bedtime else Icons.Default.FitnessCenter,
-                            contentDescription = null,
-                            tint = if (isRestDay) SetraTheme.extendedColors.textMuted else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(Dimens.spaceSmall))
-
-                    Column {
-                        Text(
-                            text = dayName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (isRestDay) "Rest Day" else "${workouts.size} Workout${if (workouts.size > 1) "s" else ""}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isRestDay) SetraTheme.extendedColors.textMuted else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                Button(
-                    onClick = onAddWorkout,
-                    shape = ButtonShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    contentPadding = PaddingValues(horizontal = Dimens.spaceSmall, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
+                Box(
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 46.dp)
+                        .clip(RoundedCornerShape(Dimens.radiusMedium))
+                        .background(if (isExpanded && !isRestDay) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(Dimens.spaceXSmall))
-                    Text(text = "Add Workout", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = dayName.take(3),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isExpanded && !isRestDay) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
+
+                Spacer(Modifier.width(Dimens.spaceMedium))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isRestDay) "Rest Day" else workouts.firstOrNull()?.workout?.name ?: "Workout",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (isRestDay) "Recovery & mobility" else workouts.firstOrNull()?.workout?.description.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SetraTheme.extendedColors.textMuted,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+
+                if (isExpanded) {
+                    IconButton(onClick = onAddWorkout, modifier = Modifier.size(34.dp)) {
+                        Icon(Icons.Default.Add, contentDescription = "Add workout", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse day" else "Expand day",
+                    tint = if (isExpanded) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
-            if (isRestDay) {
-                Spacer(modifier = Modifier.height(Dimens.spaceXSmall))
-                Text(
-                    text = "No workouts scheduled for this day.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SetraTheme.extendedColors.textMuted
-                )
-            } else {
-                Spacer(modifier = Modifier.height(Dimens.spaceMedium))
-
+            if (isExpanded && isRestDay) {
+                Spacer(Modifier.height(Dimens.spaceSmall))
+                Text("Rest and recover", style = MaterialTheme.typography.bodySmall, color = SetraTheme.extendedColors.textMuted)
+            } else if (isExpanded) {
+                Spacer(modifier = Modifier.height(Dimens.spaceSmall))
                 workouts.forEachIndexed { workoutIndex, workoutWithExercises ->
                     WorkoutBlock(
                         workoutWithExercises = workoutWithExercises,
@@ -577,7 +579,7 @@ fun RoutineDayCard(
                     )
 
                     if (workoutIndex < workouts.size - 1) {
-                        Spacer(modifier = Modifier.height(Dimens.spaceMedium))
+                        Spacer(modifier = Modifier.height(Dimens.spaceSmall))
                     }
                 }
             }
@@ -611,20 +613,13 @@ fun WorkoutBlock(
     val workout = workoutWithExercises.workout
     val exercises = workoutWithExercises.sortedExercises
     var showWorkoutMenu by remember { mutableStateOf(false) }
+    var expandedExerciseId by remember(workout.id) { mutableStateOf<Long?>(null) }
 
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Dimens.radiusMedium))
-            .background(MaterialTheme.colorScheme.background)
-            .border(
-                width = Dimens.strokeWidthThin,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(Dimens.radiusMedium)
-            )
-            .padding(Dimens.spaceMedium)
+            .padding(top = Dimens.spaceXSmall)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
             // Workout Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -728,7 +723,7 @@ fun WorkoutBlock(
 
             Spacer(modifier = Modifier.height(Dimens.spaceSmall))
 
-            // Exercises
+            // Compact exercise list; tap a row to reveal its full set editor.
             if (exercises.isEmpty()) {
                 Text(
                     text = "No exercises in this workout.",
@@ -738,20 +733,72 @@ fun WorkoutBlock(
                 )
             } else {
                 exercises.forEachIndexed { exIndex, routineExerciseWithDetails ->
-                    RoutineExerciseBlock(
-                        routineExerciseWithDetails = routineExerciseWithDetails,
-                        isFirst = exIndex == 0,
-                        isLast = exIndex == exercises.size - 1,
-                        onDelete = { onDeleteExercise(routineExerciseWithDetails) },
-                        onDuplicate = { onDuplicateExercise(routineExerciseWithDetails) },
-                        onMoveUp = { onMoveExerciseUp(routineExerciseWithDetails) },
-                        onMoveDown = { onMoveExerciseDown(routineExerciseWithDetails) },
-                        onAddSet = { onAddSetTemplate(routineExerciseWithDetails) },
-                        onUpdateSet = onUpdateSetTemplate,
-                        onDeleteSet = onDeleteSetTemplate,
-                        onMoveSetTemplateUp = { set -> onMoveSetTemplateUp(set, routineExerciseWithDetails) },
-                        onMoveSetTemplateDown = { set -> onMoveSetTemplateDown(set, routineExerciseWithDetails) }
-                    )
+                    val isExerciseExpanded = expandedExerciseId == routineExerciseWithDetails.routineExercise.id
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(Dimens.radiusSmall))
+                            .clickable {
+                                expandedExerciseId = if (isExerciseExpanded) null
+                                else routineExerciseWithDetails.routineExercise.id
+                            }
+                            .padding(horizontal = Dimens.spaceSmall, vertical = Dimens.spaceSmall),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FitnessCenter,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(Dimens.spaceSmall))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = routineExerciseWithDetails.exercise?.name
+                                    ?: routineExerciseWithDetails.routineExercise.exerciseId,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = exercisePrescriptionSummary(routineExerciseWithDetails),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SetraTheme.extendedColors.textMuted
+                            )
+                        }
+                        Icon(
+                            imageVector = if (isExerciseExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isExerciseExpanded) "Hide exercise set details" else "Show exercise set details",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (isExerciseExpanded) {
+                        RoutineExerciseBlock(
+                            routineExerciseWithDetails = routineExerciseWithDetails,
+                            isFirst = exIndex == 0,
+                            isLast = exIndex == exercises.size - 1,
+                            onDelete = { onDeleteExercise(routineExerciseWithDetails) },
+                            onDuplicate = { onDuplicateExercise(routineExerciseWithDetails) },
+                            onMoveUp = { onMoveExerciseUp(routineExerciseWithDetails) },
+                            onMoveDown = { onMoveExerciseDown(routineExerciseWithDetails) },
+                            onAddSet = { onAddSetTemplate(routineExerciseWithDetails) },
+                            onUpdateSet = onUpdateSetTemplate,
+                            onDeleteSet = onDeleteSetTemplate,
+                            onMoveSetTemplateUp = { set -> onMoveSetTemplateUp(set, routineExerciseWithDetails) },
+                            onMoveSetTemplateDown = { set -> onMoveSetTemplateDown(set, routineExerciseWithDetails) }
+                        )
+                    }
 
                     if (exIndex < exercises.size - 1) {
                         Spacer(modifier = Modifier.height(Dimens.spaceSmall))
@@ -761,12 +808,28 @@ fun WorkoutBlock(
 
             Spacer(modifier = Modifier.height(Dimens.spaceSmall))
 
-            SetraPrimaryButton(
-                text = "+ Add Exercise",
-                onClick = onAddExerciseClick,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            TextButton(onClick = onAddExerciseClick) {
+                Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(Dimens.spaceXSmall))
+                Text("Add Exercise", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+    }
+}
+
+private fun exercisePrescriptionSummary(exercise: RoutineExerciseWithDetails): String {
+    val sets = exercise.sortedSetTemplates
+    val referenceNote = sets.firstNotNullOfOrNull { set ->
+        set.notes?.takeIf { it.contains("prescription", ignoreCase = true) }
+    }
+    if (referenceNote != null) return referenceNote.substringAfter(':').trim()
+
+    val setCount = sets.size.coerceAtLeast(1)
+    val targetReps = sets.firstOrNull()?.targetReps?.toInt()?.toString()
+    val duration = sets.firstOrNull()?.durationSeconds
+    return when {
+        targetReps != null -> "$setCount × $targetReps reps"
+        duration != null -> "$setCount × ${duration}s"
+        else -> "$setCount sets"
     }
 }
 
@@ -787,6 +850,8 @@ fun RoutineExerciseBlock(
     modifier: Modifier = Modifier
 ) {
     val exerciseName = routineExerciseWithDetails.exercise?.name ?: routineExerciseWithDetails.routineExercise.exerciseId
+    val exercise = routineExerciseWithDetails.exercise
+    val tracking = exerciseTracking(exercise?.category, exercise?.equipment, exercise?.mechanic)
     val sets = routineExerciseWithDetails.sortedSetTemplates
     var showExMenu by remember { mutableStateOf(false) }
 
@@ -877,8 +942,10 @@ fun RoutineExerciseBlock(
             ) {
                 Text(text = "SET", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(36.dp))
                 Text(text = "TYPE", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(60.dp))
-                Text(text = "REPS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(52.dp))
-                Text(text = "KG", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(52.dp))
+                if (tracking.repetitions) Text(text = "REPS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(52.dp))
+                if (tracking.externalResistance) Text(text = "KG", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(52.dp))
+                if (tracking.duration) Text(text = "SEC", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(52.dp))
+                if (tracking.distance) Text(text = "M", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(52.dp))
                 Text(text = "REST", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SetraTheme.extendedColors.textMuted, modifier = Modifier.width(48.dp))
                 Spacer(modifier = Modifier.width(28.dp))
             }
@@ -887,6 +954,7 @@ fun RoutineExerciseBlock(
                 SetTemplateRow(
                     setIndex = setIndex + 1,
                     setTemplate = setTemplate,
+                    tracking = tracking,
                     onUpdate = onUpdateSet,
                     onDelete = { onDeleteSet(setTemplate.id) }
                 )
@@ -910,6 +978,7 @@ fun RoutineExerciseBlock(
 fun SetTemplateRow(
     setIndex: Int,
     setTemplate: SetTemplateEntity,
+    tracking: ExerciseTracking,
     onUpdate: (SetTemplateEntity) -> Unit,
     onDelete: () -> Unit
 ) {
@@ -970,7 +1039,7 @@ fun SetTemplateRow(
 
         // Reps Input
         val repsText = setTemplate.targetReps?.toInt()?.toString() ?: ""
-        Box(
+        if (tracking.repetitions) Box(
             modifier = Modifier
                 .width(52.dp)
                 .clip(RoundedCornerShape(4.dp))
@@ -997,7 +1066,7 @@ fun SetTemplateRow(
 
         // Weight Input
         val weightText = setTemplate.targetWeight?.toString() ?: ""
-        Box(
+        if (tracking.externalResistance) Box(
             modifier = Modifier
                 .width(52.dp)
                 .clip(RoundedCornerShape(4.dp))
@@ -1023,8 +1092,33 @@ fun SetTemplateRow(
             )
         }
 
+        if (tracking.duration) {
+            val durationText = setTemplate.durationSeconds?.toString() ?: ""
+            OutlinedTextField(
+                value = durationText,
+                onValueChange = { onUpdate(setTemplate.copy(durationSeconds = it.toIntOrNull())) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.width(52.dp),
+                textStyle = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                placeholder = { Text("sec", style = MaterialTheme.typography.labelSmall) }
+            )
+        }
+        if (tracking.distance) {
+            val distanceText = setTemplate.targetDistanceMeters?.let { (it / 1000.0).toString().trimEnd('0').trimEnd('.') } ?: ""
+            OutlinedTextField(
+                value = distanceText,
+                onValueChange = { onUpdate(setTemplate.copy(targetDistanceMeters = it.toDoubleOrNull()?.times(1000.0))) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.width(52.dp),
+                textStyle = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                placeholder = { Text("km", style = MaterialTheme.typography.labelSmall) }
+            )
+        }
+
         // Rest Seconds
-        val restText = "${setTemplate.restSeconds ?: 90}s"
+        val restText = setTemplate.restSeconds?.let { "${it}s" } ?: "Default"
         Text(
             text = restText,
             style = MaterialTheme.typography.bodySmall,

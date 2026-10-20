@@ -13,5 +13,6 @@ enum class DistanceUnit {
 data class UserPreferences(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val weightUnit: WeightUnit = WeightUnit.KG,
-    val distanceUnit: DistanceUnit = DistanceUnit.KM
+    val distanceUnit: DistanceUnit = DistanceUnit.KM,
+    val defaultRestSeconds: Int = 90
 )

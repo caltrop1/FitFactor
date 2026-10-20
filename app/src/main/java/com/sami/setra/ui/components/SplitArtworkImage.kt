@@ -50,11 +50,12 @@ fun SplitArtworkImage(
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        colors = listOf(
-                            backgroundColor,
-                            backgroundColor.copy(alpha = 0.86f),
-                            backgroundColor.copy(alpha = 0.30f),
-                            Color.Transparent
+                        colorStops = arrayOf(
+                            0.0f to backgroundColor,
+                            0.12f to backgroundColor.copy(alpha = 0.88f),
+                            0.30f to backgroundColor.copy(alpha = 0.62f),
+                            0.52f to backgroundColor.copy(alpha = 0.20f),
+                            1.0f to Color.Transparent
                         )
                     )
                 )
@@ -65,10 +66,10 @@ fun SplitArtworkImage(
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Transparent,
-                            Color(0x4D000000)
+                        colorStops = arrayOf(
+                            0.0f to Color.Transparent,
+                            0.72f to Color.Transparent,
+                            1.0f to Color(0x26000000)
                         )
                     )
                 )

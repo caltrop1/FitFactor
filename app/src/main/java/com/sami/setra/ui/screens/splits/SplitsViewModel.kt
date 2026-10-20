@@ -9,12 +9,17 @@ import com.sami.setra.data.repository.SplitTemplateRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 
 class SplitsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val splitTemplateRepository = SplitTemplateRepository()
     private val routineRepository = RoutineRepository(application)
+
+    val routines = routineRepository.getAllActiveRoutines()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val splits: List<SplitTemplate> = splitTemplateRepository.builtInSplits
 

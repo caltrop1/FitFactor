@@ -88,4 +88,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             userPreferencesRepository.setDistanceUnit(distanceUnit)
         }
     }
+
+    fun setDefaultRestSeconds(seconds: Int) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDefaultRestSeconds(seconds)
+        }
+    }
 }

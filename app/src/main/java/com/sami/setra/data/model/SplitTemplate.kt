@@ -6,7 +6,14 @@ data class SplitTemplateDay(
     val isRestDay: Boolean,
     val workoutName: String? = null,
     val workoutDescription: String? = null,
-    val sampleExercises: List<String> = emptyList() // List of exercise IDs from Free Exercise DB
+    val sampleExercises: List<SplitExerciseTemplate> = emptyList()
+)
+
+data class SplitExerciseTemplate(
+    val exerciseId: String,
+    val displayName: String,
+    val sets: String,
+    val repRange: String
 )
 
 data class SplitTemplate(

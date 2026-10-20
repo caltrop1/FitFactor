@@ -47,6 +47,7 @@ fun SetraNavHost(
     onThemeModeChange: (ThemeMode) -> Unit,
     onWeightUnitChange: (WeightUnit) -> Unit,
     onDistanceUnitChange: (DistanceUnit) -> Unit,
+    onDefaultRestSecondsChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     pendingImportUri: Uri? = null,
     onConsumePendingImportUri: () -> Unit = {}
@@ -70,8 +71,12 @@ fun SetraNavHost(
                 onSplitClick = { splitId ->
                     navController.navigate(Screen.SplitDetail(splitId))
                 },
+                onRoutineClick = { routineId -> navController.navigate(Screen.RoutineDetail(routineId)) },
                 onOpenSearch = {
                     navController.navigate(Screen.ExerciseList)
+                },
+                onCreateClick = {
+                    navController.navigateToBottomNavDestination(Screen.Create)
                 }
             )
         }
@@ -112,6 +117,7 @@ fun SetraNavHost(
                 onOpenSearch = {
                     navController.navigate(Screen.ExerciseList)
                 },
+                onOpenProfile = { navController.navigateToBottomNavDestination(Screen.Profile) },
                 onResumeActiveWorkout = { sessionId ->
                     navController.navigate(Screen.ActiveWorkout(sessionId))
                 }
@@ -141,7 +147,7 @@ fun SetraNavHost(
         composable<Screen.ActiveWorkout> { backStackEntry ->
             val activeRoute: Screen.ActiveWorkout = backStackEntry.toRoute()
             val activeWorkoutViewModel: ActiveWorkoutViewModel = viewModel(
-                factory = ActiveWorkoutViewModel.Factory(application, activeRoute.sessionId)
+                factory = ActiveWorkoutViewModel.Factory(application, activeRoute.sessionId, userPreferences.defaultRestSeconds)
             )
             ActiveWorkoutScreen(
                 viewModel = activeWorkoutViewModel,
@@ -150,7 +156,8 @@ fun SetraNavHost(
                 },
                 onCancelWorkoutClick = {
                     navController.popBackStack()
-                }
+                },
+                distanceUnit = userPreferences.distanceUnit
             )
         }
 
@@ -241,7 +248,8 @@ fun SetraNavHost(
                 userPreferences = userPreferences,
                 onThemeModeChange = onThemeModeChange,
                 onWeightUnitChange = onWeightUnitChange,
-                onDistanceUnitChange = onDistanceUnitChange
+                onDistanceUnitChange = onDistanceUnitChange,
+                onDefaultRestSecondsChange = onDefaultRestSecondsChange
             )
         }
 
