@@ -117,7 +117,7 @@ fun SetraNavHost(
                 onOpenSearch = {
                     navController.navigate(Screen.ExerciseList)
                 },
-                onOpenProfile = { navController.navigateToBottomNavDestination(Screen.Profile) },
+                onOpenProfile = { navController.navigateToBottomNavDestination(Screen.Settings) },
                 onResumeActiveWorkout = { sessionId ->
                     navController.navigate(Screen.ActiveWorkout(sessionId))
                 }
@@ -243,7 +243,7 @@ fun SetraNavHost(
             )
         }
 
-        composable<Screen.Profile> {
+        composable<Screen.Settings> {
             ProfileScreen(
                 userPreferences = userPreferences,
                 onThemeModeChange = onThemeModeChange,

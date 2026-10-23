@@ -171,18 +171,7 @@ fun ProfileScreen(
             detail = "yuhonas/free-exercise-db • Unlicense • Available offline"
         )
 
-        InfoPreferenceCard(
-            icon = Icons.Default.Shield,
-            title = "Privacy & Data",
-            subtitle = {
-                Text(
-                    text = "Your data stays on your device",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SetraTheme.extendedColors.textMuted
-                )
-            },
-            detail = "100% Offline"
-        )
+
         
     }
 }
@@ -196,7 +185,7 @@ private fun ProfileHeader() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.Person,
+            imageVector = Icons.Default.Settings,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(42.dp)
@@ -205,7 +194,7 @@ private fun ProfileHeader() {
         Spacer(Modifier.width(Dimens.spaceMedium))
         Column(modifier = Modifier.weight(1f).semantics { heading() }) {
             Text(
-                text = "Profile",
+                text = "Settings",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground

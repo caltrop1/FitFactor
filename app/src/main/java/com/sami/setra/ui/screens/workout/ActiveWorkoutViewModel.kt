@@ -6,7 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.sami.setra.data.local.database.entity.CompletedSetEntity
+import com.sami.setra.data.local.database.relation.ExerciseWithDetails
 import com.sami.setra.data.local.database.relation.WorkoutSessionWithDetails
+import com.sami.setra.data.repository.ExerciseRepository
 import com.sami.setra.data.repository.WorkoutSessionRepository
 import com.sami.setra.data.model.exerciseTracking
 import kotlinx.coroutines.Job
@@ -25,6 +27,7 @@ class ActiveWorkoutViewModel(
 ) : AndroidViewModel(application) {
 
     private val repository = WorkoutSessionRepository(application)
+    private val exerciseRepository = ExerciseRepository(application)
 
     val sessionState: StateFlow<WorkoutSessionWithDetails?> = repository.getWorkoutSessionById(sessionId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -34,6 +37,11 @@ class ActiveWorkoutViewModel(
 
     private val _previousPerformance = MutableStateFlow<List<CompletedSetEntity>>(emptyList())
     val previousPerformance: StateFlow<List<CompletedSetEntity>> = _previousPerformance.asStateFlow()
+
+    private val _currentExerciseDetails = MutableStateFlow<ExerciseWithDetails?>(null)
+    val currentExerciseDetails: StateFlow<ExerciseWithDetails?> = _currentExerciseDetails.asStateFlow()
+
+    private var exerciseDetailsJob: Job? = null
 
     // Timer State
     private val _isTimerRunning = MutableStateFlow(false)
@@ -49,21 +57,33 @@ class ActiveWorkoutViewModel(
     private var timerJob: Job? = null
 
     init {
-        // Observe current exercise to fetch previous performance
+        // Observe current exercise to fetch details and previous performance
         viewModelScope.launch {
             sessionState.collect { session ->
                 if (session != null && session.sortedExercises.isNotEmpty()) {
                     val idx = _currentExerciseIndex.value.coerceIn(0, session.sortedExercises.size - 1)
                     val currentExercise = session.sortedExercises[idx]
                     val exId = currentExercise.sessionExercise.exerciseId
-                    if (!exId.isNullOrBlank()) {
-                        val prev = repository.getPreviousPerformanceForExercise(exId)
-                        _previousPerformance.value = prev
-                    } else {
-                        _previousPerformance.value = emptyList()
-                    }
+                    updateActiveExercise(exId)
                 }
             }
+        }
+    }
+
+    private fun updateActiveExercise(exId: String?) {
+        exerciseDetailsJob?.cancel()
+        if (!exId.isNullOrBlank()) {
+            exerciseDetailsJob = viewModelScope.launch {
+                exerciseRepository.getExerciseById(exId).collect { details ->
+                    _currentExerciseDetails.value = details
+                }
+            }
+            viewModelScope.launch {
+                _previousPerformance.value = repository.getPreviousPerformanceForExercise(exId)
+            }
+        } else {
+            _currentExerciseDetails.value = null
+            _previousPerformance.value = emptyList()
         }
     }
 
@@ -74,13 +94,7 @@ class ActiveWorkoutViewModel(
         if (session != null && session.sortedExercises.isNotEmpty()) {
             val currentExercise = session.sortedExercises[_currentExerciseIndex.value]
             val exId = currentExercise.sessionExercise.exerciseId
-            viewModelScope.launch {
-                if (!exId.isNullOrBlank()) {
-                    _previousPerformance.value = repository.getPreviousPerformanceForExercise(exId)
-                } else {
-                    _previousPerformance.value = emptyList()
-                }
-            }
+            updateActiveExercise(exId)
         }
     }
 

@@ -73,7 +73,7 @@ fun SetraApp(
         currentRoute?.contains("Routine") == true -> Screen.Routines
         currentRoute?.contains("Create") == true -> Screen.Create
         currentRoute?.contains("Progress") == true -> Screen.Progress
-        currentRoute?.contains("Profile") == true -> Screen.Profile
+        currentRoute?.contains("Profile") == true || currentRoute?.contains("Settings") == true -> Screen.Settings
         isListScreen -> Screen.ExerciseList
         else -> Screen.Splits
     }

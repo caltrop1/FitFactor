@@ -6,11 +6,11 @@ import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
 
@@ -37,7 +37,7 @@ sealed interface Screen {
     data object Progress : Screen
 
     @Serializable
-    data object Profile : Screen
+    data object Settings : Screen
 
     @Serializable
     data object ExerciseList : Screen
@@ -96,10 +96,10 @@ val bottomNavItems = listOf(
         contentDescription = "Progress and history destination"
     ),
     BottomNavItem(
-        route = Screen.Profile,
-        title = "Profile",
-        selectedIcon = Icons.Filled.Person,
-        unselectedIcon = Icons.Outlined.Person,
-        contentDescription = "Profile and settings destination"
+        route = Screen.Settings,
+        title = "Settings",
+        selectedIcon = Icons.Filled.Settings,
+        unselectedIcon = Icons.Outlined.Settings,
+        contentDescription = "Settings destination"
     )
 )
